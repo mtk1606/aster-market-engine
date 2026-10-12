@@ -1,0 +1,35 @@
+name: verify
+on:
+  push:
+  pull_request:
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++, clang++]
+        sanitizer: [OFF, ON]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DASTER_SANITIZE=${{ matrix.sanitizer }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+      - name: Build
+        run: cmake --build build --parallel 2
+      - name: Verify
+        run: ctest --test-dir build --output-on-failure
+
+  fuzz-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure fuzz targets
+        run: cmake -S . -B build-fuzz -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DASTER_SANITIZE=ON -DASTER_FUZZ=ON
+      - name: Build fuzz targets
+        run: cmake --build build-fuzz --parallel 2
+      - name: Seed corpus
+        run: python3 fuzz/generate_seeds.py
+      - name: Fuzz frame decoder
+        run: ./build-fuzz/aster-fuzz-frames -runs=1000 -max_len=4096 fuzz/corpus/frames
+      - name: Fuzz book invariants
+        run: ./build-fuzz/aster-fuzz-book -runs=1000 -max_len=4096

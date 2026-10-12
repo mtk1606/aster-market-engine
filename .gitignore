@@ -1,0 +1,10 @@
+build/
+*.itch
+*.gz
+*.core
+__pycache__/
+.pytest_cache/
+.DS_Store
+
+# Generated/libFuzzer-mutated seed corpus
+fuzz/corpus/
