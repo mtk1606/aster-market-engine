@@ -32,4 +32,4 @@ jobs:
       - name: Fuzz frame decoder
         run: ./build-fuzz/aster-fuzz-frames -runs=1000 -max_len=4096 fuzz/corpus/frames
       - name: Fuzz book invariants
-        run: ./build-fuzz/aster-fuzz-book -runs=1000 -max_len=4096
+        run: ./build-fuzz/aster-fuzz-book -runs=1000 -max_len=4096 fuzz/corpus/book
