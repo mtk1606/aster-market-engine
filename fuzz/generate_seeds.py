@@ -45,3 +45,25 @@ store('invalid-side', packet('A', order=8, qty=1, price=1_000_000).replace(b'B',
 store('zero-length', b'\x00\x00')
 store('unknown-type', b'\x00\x0c' + b'z' + b'\x00' * 11)
 print('Corpus written:', ROOT)
+
+# The book fuzzer consumes 19-byte commands. Without a >=19-byte seed,
+# short smoke runs may never reach a single book mutation.
+BOOK = Path(__file__).resolve().parent / 'corpus' / 'book'
+BOOK.mkdir(parents=True, exist_ok=True)
+
+def mutation(action, order, *, replacement=0, locate=7, price=1000, shares=100, side=1):
+    value = bytearray(19)
+    value[0] = action
+    value[1] = locate
+    struct.pack_into('>H', value, 2, order)
+    struct.pack_into('>H', value, 4, replacement)
+    struct.pack_into('>I', value, 6, price)
+    struct.pack_into('>I', value, 10, shares)
+    value[14] = side
+    return bytes(value)
+
+(BOOK / 'add-partial-delete').write_bytes(
+    mutation(0, 1) + mutation(2, 1, shares=25) + mutation(3, 1))
+(BOOK / 'replace-execute').write_bytes(
+    mutation(0, 10) + mutation(4, 10, replacement=11, price=1001)
+    + mutation(1, 11, shares=60))
