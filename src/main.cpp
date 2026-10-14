@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "usage: aster-replay FILE [--io mmap|read] [--chunk N] "
                      "[--locate N|--symbol STOCK] [--limit N] [--validate] "
-                     "[--audit] [--complete] [--snapshot] [--walk B|S N] [--locate-digests]\n";
+                     "[--audit] [--complete] [--snapshot] [--walk B|S N] [--locate-digests] [--decode-only]\n";
         return 2;
     }
     try {
@@ -79,6 +79,7 @@ int main(int argc, char** argv) {
         };
         std::vector<Checkpoint> checkpoints;
         bool validate = false;
+        bool decode_only = false;
         bool show_snapshot = false;
         bool show_locate_digests = false;
         char walk_side = '\0';
@@ -117,7 +118,8 @@ int main(int argc, char** argv) {
                     throw std::runtime_error("--walk side must be B or S");
                 walk_side = side.front();
                 walk_size = number(argv[++i]);
-            } else if (arg == "--validate") validate = true;
+            } else if (arg == "--decode-only") decode_only = true;
+            else if (arg == "--validate") validate = true;
             else if (arg == "--audit") audit_enabled = true;
             else if (arg == "--complete") { audit_enabled = true; require_complete = true; }
             else if (arg == "--snapshot") show_snapshot = true;
@@ -132,6 +134,9 @@ int main(int argc, char** argv) {
         if (show_snapshot && !locate && !selected_symbol)
             throw std::runtime_error("--snapshot requires --locate or --symbol");
         if (custom_chunk && io != "read") throw std::runtime_error("--chunk requires --io read");
+        if (decode_only && (validate || locate || selected_symbol || walk_side || show_snapshot ||
+                            show_locate_digests || checkpoint_interval))
+            throw std::runtime_error("--decode-only is incompatible with book validation, selection or snapshots");
 
         // The mapping or read buffer must outlive each borrowed Frame.
         std::unique_ptr<aster::MappedFile> mapping;
@@ -153,7 +158,7 @@ int main(int argc, char** argv) {
                 const auto event = aster::decode(frame);
                 if (audit_enabled) audit.observe(frame, event);
                 if (event.kind == aster::Kind::Other) ++ignored;
-                else book.apply(event);
+                else if (!decode_only) book.apply(event);
                 ++frames;
                 if (checkpoint_interval && frames % checkpoint_interval == 0) {
                     checkpoints.push_back({frames, book.applied(), book.orders(), book.digest()});
@@ -176,7 +181,8 @@ int main(int argc, char** argv) {
             if (!locate) throw std::runtime_error("symbol not found in stock directory: " + *selected_symbol);
         }
         const auto elapsed = std::chrono::duration<double>(end - start).count();
-        std::cout << "{\"io\":\"" << io << "\",\"frames\":" << frames
+        std::cout << "{\"io\":\"" << io << "\",\"mode\":\""
+                  << (decode_only ? "decode" : "replay") << "\",\"frames\":" << frames
                   << ",\"bytes_consumed\":" << (streamed ? streamed->consumed() : mapped->consumed())
                   << ",\"applied\":" << book.applied()
                   << ",\"ignored\":" << ignored << ",\"live_orders\":" << book.orders()

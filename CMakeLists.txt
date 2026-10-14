@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(aster_market VERSION 0.5.0 LANGUAGES CXX)
+project(aster_market VERSION 0.6.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -30,6 +30,12 @@ if(BUILD_TESTING)
   add_test(NAME aster-rejection-matrix
     COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
       python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/rejection_matrix.py)
+  add_test(NAME aster-session-receipt
+    COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
+      python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/session_receipt.py)
+  add_test(NAME aster-stage-benchmark
+    COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
+      python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/stage_bench.py)
   add_test(NAME aster-session
     COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
       python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/session.py)
