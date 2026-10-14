@@ -2,7 +2,7 @@
 
 The QSE archive supplied for this review contains an `OrderBookFullDepth` with price-level FIFO queues, volume accounting, front/back insertion and quote-driven synthetic liquidity. Aster's book stores observed ITCH order references and reconstructs displayed depth. These systems overlap, but they are **not** replacements for one another.
 
-There is also a provenance constraint: the supplied QSE archive identifies **Marcus Myrick** as copyright holder and includes an **All Rights Reserved** license that prohibits using, copying, modifying, or distributing the software without permission. Nothing from that source archive is included in Aster, and the comparison tooling does not build or run the supplied QSE code. Independent use requires permission or another valid authorization.
+The supplied QSE archive identifies its original copyright holder and carries an **All Rights Reserved** license. A project collaborator has confirmed authorization to benchmark the supplied source. For this report QSE was compiled in a separate, local directory using `bench/qse_book_driver.cpp` as an independently written adapter; no QSE source, binaries, or modified implementation are included in Aster. Anyone reproducing the QSE run needs their own authorized copy.
 
 ## Comparable operation subset
 
@@ -37,10 +37,10 @@ python3 tools/compare_books.py \
   --operations 200000 --depth 1024 --repetitions 5
 ```
 
-A compatible driver accepts one positional TSV workload path. Its stdout is one JSON object with `schema: "order-book-comparison-v1"`, `engine: "qse"`, `operations`, `live_orders`, `elapsed_seconds`, `state_hash`, `bid4`, `ask4`, `bid_shares`, and `ask_shares`. `state_hash` uses FNV-1a 64-bit beginning at `14695981039346656037`; mix each field as **8 little-endian bytes**, in this order: for sides `B` then `S`, mix ASCII side and number of nonempty price levels; iterate levels best-price-first and mix price4, aggregate shares, number of queued orders, and then every `(numeric ID, remaining shares)` in FIFO order. QSE adapter code is not bundled here.
+An independently written compatible driver is provided at `bench/qse_book_driver.cpp`. Compile it against an authorized local QSE source checkout; it accepts one positional TSV workload path. Its stdout is one JSON object with `schema: "order-book-comparison-v1"`, `engine: "qse"`, `operations`, `live_orders`, `elapsed_seconds`, `state_hash`, `bid4`, `ask4`, `bid_shares`, and `ask_shares`. `state_hash` uses FNV-1a 64-bit beginning at `14695981039346656037`; mix each field as **8 little-endian bytes**, in this order: for sides `B` then `S`, mix ASCII side and number of nonempty price levels; iterate levels best-price-first and mix price4, aggregate shares, number of queued orders, and then every `(numeric ID, remaining shares)` in FIFO order. QSE adapter code is not bundled here.
 
 ## Interpretation
 
 The comparison report contains the workload SHA-256, binary SHA-256 values, machine details, individual process wall/CPU/RSS observations and medians of book-loop throughput. Aster's raw local baseline appears in [book benchmark](book-benchmark.md). This is a CPU-local **add/delete book-kernel microbenchmark**. It is neither a replay of Nasdaq data nor a measurement of strategy behavior or execution realism. It does not establish lower p99 latency, superior backtesting results, or a general speed advantage.
 
-There is **no QSE throughput measurement** in this release, no redistribution of its code, and no claim that Aster has surpassed QSE. Results for both drivers should only be published when both executables have authorization, their output states match the independent reference, the same workload and host are used, and run-to-run variability is reported.
+An authorized QSE measurement now exists for the add/delete workload. See [the dated comparison](qse-book-comparison-2026-10-14.md) and [raw results](qse-book-comparison-2026-10-14.json). These results are not a general ranking of the engines: the adapters exercise different internal APIs, the implementation objectives differ, and full market-data reconstruction was not benchmarked against QSE.

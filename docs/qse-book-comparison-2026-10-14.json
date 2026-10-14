@@ -1,0 +1,126 @@
+{
+  "comparison_limitations": "Requires a separately authorized QSE driver implementing the exact JSON and operation protocol. Aster uses numeric order IDs; a QSE adapter may require string and queue-ID bookkeeping. Only add and whole-order delete have agreed semantics; engine internal operations are not identical. Whole-loop throughput, not market-data end-to-end or tail latency.",
+  "description": "Locally authorized QSE source; no third-party source or binary published. Both executable outputs matched an independent Python final FIFO state oracle.",
+  "drivers": {
+    "aster": {
+      "driver_sha256": "9a84a87d0fbcb4e932ecbf1b68e42f7321692200b7962b137ff5f522f891cf57",
+      "max_observed_rss_kib": 98844,
+      "median_engine_seconds": 0.016648705,
+      "median_operations_per_second": 12012946.352283856,
+      "runs": [
+        {
+          "engine_seconds": 0.017788346,
+          "max_rss_kib": 98844,
+          "operations_per_second": 11243316.270101784,
+          "process_wall_seconds": 0.06585978700059059,
+          "system_cpu_seconds": 0.003907,
+          "user_cpu_seconds": 0.061625
+        },
+        {
+          "engine_seconds": 0.016194161,
+          "max_rss_kib": 98844,
+          "operations_per_second": 12350130.395764252,
+          "process_wall_seconds": 0.06298867500026972,
+          "system_cpu_seconds": 0.003979,
+          "user_cpu_seconds": 0.058658999999999996
+        },
+        {
+          "engine_seconds": 0.016648705,
+          "max_rss_kib": 98844,
+          "operations_per_second": 12012946.352283856,
+          "process_wall_seconds": 0.06137831499927415,
+          "system_cpu_seconds": 0.011548,
+          "user_cpu_seconds": 0.049582999999999995
+        },
+        {
+          "engine_seconds": 0.018298224,
+          "max_rss_kib": 98844,
+          "operations_per_second": 10930022.498358311,
+          "process_wall_seconds": 0.06763397499980783,
+          "system_cpu_seconds": 0.011595999999999999,
+          "user_cpu_seconds": 0.055682999999999996
+        },
+        {
+          "engine_seconds": 0.015611479,
+          "max_rss_kib": 98844,
+          "operations_per_second": 12811085.99640047,
+          "process_wall_seconds": 0.05914404299983289,
+          "system_cpu_seconds": 0.007911,
+          "user_cpu_seconds": 0.050913
+        }
+      ]
+    },
+    "qse": {
+      "driver_sha256": "d9250ad7ea81b0d8d4248a668b692652a5640dea8a72044b3f1ffb396c86c5d9",
+      "max_observed_rss_kib": 98844,
+      "median_engine_seconds": 0.279309443,
+      "median_operations_per_second": 716051.6946790088,
+      "runs": [
+        {
+          "engine_seconds": 0.279309443,
+          "max_rss_kib": 98844,
+          "operations_per_second": 716051.6946790088,
+          "process_wall_seconds": 0.3309002360001614,
+          "system_cpu_seconds": 0.008350999999999999,
+          "user_cpu_seconds": 0.321833
+        },
+        {
+          "engine_seconds": 0.332500398,
+          "max_rss_kib": 98844,
+          "operations_per_second": 601503.0394038807,
+          "process_wall_seconds": 0.3836220860002868,
+          "system_cpu_seconds": 0.004046,
+          "user_cpu_seconds": 0.37932299999999997
+        },
+        {
+          "engine_seconds": 0.263896512,
+          "max_rss_kib": 98844,
+          "operations_per_second": 757872.8437304999,
+          "process_wall_seconds": 0.3095066619998761,
+          "system_cpu_seconds": 0.01217,
+          "user_cpu_seconds": 0.29653399999999996
+        },
+        {
+          "engine_seconds": 0.264527124,
+          "max_rss_kib": 98844,
+          "operations_per_second": 756066.1340725119,
+          "process_wall_seconds": 0.3088568610000948,
+          "system_cpu_seconds": 0.0,
+          "user_cpu_seconds": 0.308513
+        },
+        {
+          "engine_seconds": 0.301911925,
+          "max_rss_kib": 98844,
+          "operations_per_second": 662444.8504311314,
+          "process_wall_seconds": 0.35302060799949686,
+          "system_cpu_seconds": 0.007476,
+          "user_cpu_seconds": 0.344253
+        }
+      ]
+    }
+  },
+  "format": "aster-qse-comparison-v1",
+  "machine": "x86_64",
+  "oracle": {
+    "ask4": 1000500,
+    "ask_shares": 4874,
+    "bid4": 1000440,
+    "bid_shares": 4361,
+    "live_orders": 1024,
+    "operations": 200000,
+    "schema": "order-book-comparison-v1",
+    "state_hash": "5d4a9d95742a6a77"
+  },
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "python": "3.13.5",
+  "qse_executed": true,
+  "qse_source_archive_sha256": "f877ff55573299d6a3576ac824bcf476756802a6c89fada3c32827e563e3b751",
+  "repetitions": 5,
+  "requested_operations": 200000,
+  "seed": 6007,
+  "target_depth": 1024,
+  "utc": "2026-10-14T15:52:43.263913+00:00",
+  "warmups": 1,
+  "workload_definition": "single-instrument add and full delete only; no ITCH parsing, partial reductions, executions, or strategy logic",
+  "workload_sha256": "d0d67f481d362507b6eca59a25aa48b3e0c5c01a8dcf6f20705269c704690689"
+}
