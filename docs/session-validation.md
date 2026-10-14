@@ -27,6 +27,10 @@ The verification script makes a streaming SHA-256 fingerprint of the original fi
 - **Unknown order / quantity mismatch**: may signal incomplete input, incorrectly decoded protocol variants, or a bug in reconstruction. Do not silently repair missing state during validation.
 - **Zero-length terminator with following bytes**: invalid trailing framing, rejected by both readers.
 
+## Independent book cross-check
+
+`tools/verify_session.py --independent --checkpoint-interval N` also runs a separately written Python decoder and price-time FIFO book. It checks the C++ intermediate state digests and final result, and can compare a full depth snapshot for one symbol with `--symbol`. This addresses shared state errors that two C++ I/O paths cannot expose. See [reference validation](reference-validation.md) for details and limitations.
+
 ## What is still missing
 
 A full historical Nasdaq session has **not** been checked into this repository and is **not** claimed to have been independently validated. Before claiming real-feed conformance, acquire a file with suitable use rights; record its origin, date, format and SHA-256; run the script above; and cross-check a time-window's messages, depth and event counts against an *independently implemented* reference. Do not commit purchased or licensed market-data files to the repository.

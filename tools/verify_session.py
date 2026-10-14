@@ -11,6 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from reference_replay import replay as independent_replay
+
 
 def sha256(path: Path):
     digest = hashlib.sha256()
@@ -20,10 +22,14 @@ def sha256(path: Path):
     return digest.hexdigest()
 
 
-def run(binary, source, method, chunk, strict):
+def run(binary, source, method, chunk, strict, interval=0, symbol=None):
     cmd = [str(binary), str(source), "--io", method, "--validate", "--audit"]
     if strict:
         cmd += ["--complete"]
+    if interval:
+        cmd += ["--checkpoint-interval", str(interval)]
+    if symbol:
+        cmd += ["--symbol", symbol, "--snapshot"]
     if method == "read":
         cmd += ["--chunk", str(chunk)]
     proc = subprocess.run(cmd, text=True, capture_output=True)
@@ -49,6 +55,11 @@ def main():
     parser.add_argument("--allow-incomplete", action="store_true",
                         help="Allow partial sessions; full session validation is the default")
     parser.add_argument("--output", type=Path, help="Optional path for the JSON verification record")
+    parser.add_argument("--independent", action="store_true",
+                        help="Also compare with a separate Python decoder and FIFO reference book")
+    parser.add_argument("--checkpoint-interval", type=int, default=100000,
+                        help="Frames between independently compared book digests (default: 100000)")
+    parser.add_argument("--symbol", help="Include full independent FIFO snapshot of this symbol")
     args = parser.parse_args()
     if not args.file.is_file():
         parser.error("input file does not exist")
@@ -60,8 +71,13 @@ def main():
     if not 1 <= args.chunk <= 8 * 1024 * 1024:
         parser.error("chunk must be between 1 and 8388608")
 
-    mapped = run(binary, args.file, "mmap", args.chunk, not args.allow_incomplete)
-    streamed = run(binary, args.file, "read", args.chunk, not args.allow_incomplete)
+    if args.independent and args.checkpoint_interval < 1:
+        parser.error("checkpoint interval must be positive")
+    interval = args.checkpoint_interval if args.independent else 0
+    mapped = run(binary, args.file, "mmap", args.chunk, not args.allow_incomplete,
+                 interval, args.symbol)
+    streamed = run(binary, args.file, "read", args.chunk, not args.allow_incomplete,
+                   interval, args.symbol)
     compare(mapped, streamed)
     size = args.file.stat().st_size
     if mapped["bytes_consumed"] != size:
@@ -76,6 +92,18 @@ def main():
         "state_equivalent": True,
         "note": "Internal decoder parity is not independent exchange-data correctness validation.",
     }
+    if args.independent:
+        reference = independent_replay(args.file, interval, complete=not args.allow_incomplete,
+                                       selected_symbol=args.symbol)
+        differences = [key for key in reference if mapped.get(key) != reference[key]]
+        if differences:
+            raise RuntimeError("independent Python/C++ mismatch in: " + ", ".join(differences))
+        record["independent_reference"] = {
+            "matched": True,
+            "engine": "separate Python struct decoder and ordered-dict FIFO book",
+            "checkpoints": len(reference["checkpoints"]),
+            "symbol_snapshot_compared": args.symbol,
+        }
     payload = json.dumps(record, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.write_text(payload)

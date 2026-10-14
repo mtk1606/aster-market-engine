@@ -4,7 +4,7 @@ A C++20 market-data replay engine built around Nasdaq TotalView-ITCH 5.0. It rea
 
 I started with the feed and the book rather than the trading strategy. If the parser misses a boundary, or a cancel silently changes the wrong order, everything built on top of that data is suspect. This repository is an attempt to make those failures visible and testable before adding execution research.
 
-**Status:** v0.3, offline research software. It does not connect to an exchange, place orders, model hidden liquidity, or infer the true queue position of a hypothetical order.
+**Status:** v0.4, offline research software. It does not connect to an exchange, place orders, model hidden liquidity, or infer the true queue position of a hypothetical order.
 
 ## What works today
 
@@ -13,6 +13,7 @@ I started with the feed and the book rather than the trading strategy. If the pa
 - **Two file readers.** A read-only `mmap` path and a bounded `read()` path that handles records split between chunks. Both feed the same message decoder and book implementation.
 - **Inspecting state.** Emits JSON counters, top-of-book quotes, optional full-depth snapshots, and a deterministic digest of the final live book. A non-mutating depth walk estimates the displayed average price for a requested quantity.
 - **Session-level validation.** Uses stock-directory messages to resolve session-specific locates, checks the stock field against the directory for new orders, recognizes opening/closing system events, audits per-type totals and timestamp regressions, and can require a complete day. An optional two-byte BinaryFILE terminator is supported in complete-session mode.
+- **Independent replay cross-check.** A separate Python decoder and `OrderedDict` FIFO book produce intermediate state digests and full-depth symbol snapshots. They are compared with both C++ I/O paths at configurable frame intervals; the generated deep-book fixtures run in CI.
 - **Tests that compare behavior, not just exit codes.** C++ unit tests, seeded randomized sequences checked against a separate Python book model, malformed-input checks, and buffered-versus-mapped equivalence tests. Clang fuzz targets are included for the framing and book mutation surfaces.
 
 This is *displayed-book reconstruction*, not a complete exchange simulator. Non-book messages are checked for structure but do not update trade statistics. ITCH file framing alone cannot establish network-level sequence continuity.
@@ -47,7 +48,15 @@ Audit session boundaries and resolve a symbol from the file's own stock director
 python3 tools/verify_session.py /path/to/session.itch --binary build/aster-replay --output report.json
 ```
 
-This adds session checks and a source-file SHA-256 to the verification record. It does **not** mean a full real Nasdaq session has already passed independent comparison; that remains a separate acceptance step. The source file stays on your machine. See [session validation](docs/session-validation.md) for strict versus partial-session behavior.
+For a stronger check, run a separate Python replay and compare the state at intermediate checkpoints:
+
+```bash
+python3 tools/verify_session.py /path/to/session.itch \
+  --binary build/aster-replay --independent --checkpoint-interval 100000 \
+  --symbol AAPL --output session-report.json
+```
+
+This adds session checks and a source-file SHA-256 to the verification record. It does **not** mean a full real Nasdaq session has already passed independent comparison; that remains a separate acceptance step. The source file stays on your machine. See [session validation](docs/session-validation.md) for strict versus partial-session behavior and [reference validation](docs/reference-validation.md) for what the independent model does and does not establish.
 
 The output is JSON. `bid4` and `ask4` use integer prices scaled by 10,000; `null` means that side has no displayed orders. `--snapshot` includes each price level and its order-reference FIFO. The digest describes the **final book state**, not the history of events that produced it. A depth walk uses visible shares only; it is not a prediction of an actual fill.
 
@@ -83,7 +92,7 @@ For exact invariants and data ownership rules, see [engineering notes](docs/engi
 
 ## Testing
 
-`ctest` runs the C++ unit tests and a Python integration suite. The integration suite generates seeded order streams, applies them to a separate Python reference model, then compares full depth, quantities, FIFO order and the final digest. It also replays the same bytes through both I/O paths at chunk sizes from 1 byte to 64 KiB.
+`ctest` runs the C++ unit tests and Python integration suites, including the independent reference cross-check. The integration suite generates seeded order streams, applies them to a separate Python reference model, then compares full depth, quantities, FIFO order and the final digest. It also replays the same bytes through both I/O paths at chunk sizes from 1 byte to 64 KiB.
 
 AddressSanitizer/UndefinedBehaviorSanitizer build:
 
@@ -116,7 +125,7 @@ The workload keeps very few orders resting at once. It is useful for checking re
 
 The next work is less about adding features and more about removing uncertainty:
 
-1. Run a complete licensed historical session and compare sampled book states with an independently developed reference.
+1. Run a complete historical session with appropriate data rights through both engines, resolve any discrepancies, and compare against a third-party reference where available.
 2. Extend fuzzing beyond smoke runs; keep minimized failing inputs as permanent regression tests.
 3. Measure parser cost, book-update cost, memory use, and event latency separately on realistic book depths.
 4. Connect this replay path to the existing QSE research engine through a stable event interface.

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(aster_market VERSION 0.3.0 LANGUAGES CXX)
+project(aster_market VERSION 0.4.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -24,6 +24,9 @@ if(BUILD_TESTING)
   add_test(NAME aster-fixture
     COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
       python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.py)
+  add_test(NAME aster-independent
+    COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
+      python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/crosscheck.py)
   add_test(NAME aster-session
     COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
       python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/session.py)

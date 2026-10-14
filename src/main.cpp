@@ -70,6 +70,14 @@ int main(int argc, char** argv) {
         bool audit_enabled = false;
         bool require_complete = false;
         std::uint64_t limit = UINT64_MAX;
+        std::uint64_t checkpoint_interval = 0;
+        struct Checkpoint {
+            std::uint64_t frame;
+            std::uint64_t applied;
+            std::size_t live_orders;
+            std::uint64_t digest;
+        };
+        std::vector<Checkpoint> checkpoints;
         bool validate = false;
         bool show_snapshot = false;
         char walk_side = '\0';
@@ -79,13 +87,16 @@ int main(int argc, char** argv) {
         bool custom_chunk = false;
         for (int i = 2; i < argc; ++i) {
             const std::string_view arg(argv[i]);
-            if ((arg == "--locate" || arg == "--limit" || arg == "--chunk") && i + 1 < argc) {
+            if ((arg == "--locate" || arg == "--limit" || arg == "--chunk" || arg == "--checkpoint-interval") && i + 1 < argc) {
                 const auto value = number(argv[++i]);
                 if (arg == "--locate") {
                     if (value > UINT16_MAX) throw std::runtime_error("locate out of range");
                     locate = static_cast<std::uint16_t>(value);
                 } else if (arg == "--limit") limit = value;
-                else {
+                else if (arg == "--checkpoint-interval") {
+                    if (value == 0) throw std::runtime_error("checkpoint interval must be positive");
+                    checkpoint_interval = value;
+                } else {
                     if (value < 1 || value > 8 * 1024 * 1024)
                         throw std::runtime_error("chunk size must be 1..8388608");
                     chunk_size = static_cast<std::size_t>(value);
@@ -142,6 +153,9 @@ int main(int argc, char** argv) {
                 if (event.kind == aster::Kind::Other) ++ignored;
                 else book.apply(event);
                 ++frames;
+                if (checkpoint_interval && frames % checkpoint_interval == 0) {
+                    checkpoints.push_back({frames, book.applied(), book.orders(), book.digest()});
+                }
             }
         } catch (const aster::Error& e) {
             throw std::runtime_error("byte " + std::to_string(e.offset) + ": " + e.what());
@@ -150,6 +164,9 @@ int main(int argc, char** argv) {
                                      ": " + e.what());
         }
         const auto end = std::chrono::steady_clock::now();
+        if (checkpoint_interval && (checkpoints.empty() || checkpoints.back().frame != frames)) {
+            checkpoints.push_back({frames, book.applied(), book.orders(), book.digest()});
+        }
         if (validate) book.validate();
         if (require_complete) audit.require_complete();
         if (selected_symbol) {
@@ -165,6 +182,20 @@ int main(int argc, char** argv) {
                   << "\",\"elapsed_seconds\":" << std::fixed << std::setprecision(6)
                   << elapsed << ",\"frames_per_second\":"
                   << (elapsed > 0 ? static_cast<double>(frames) / elapsed : 0);
+        if (checkpoint_interval) {
+            std::cout << ",\"checkpoints\":[";
+            bool first = true;
+            for (const auto& checkpoint : checkpoints) {
+                if (!first) std::cout << ',';
+                first = false;
+                std::cout << "{\"frame\":" << checkpoint.frame
+                          << ",\"applied\":" << checkpoint.applied
+                          << ",\"live_orders\":" << checkpoint.live_orders
+                          << ",\"digest\":\"" << std::hex << checkpoint.digest
+                          << std::dec << "\"}";
+            }
+            std::cout << ']';
+        }
         if (audit_enabled) {
             std::cout << ",\"audit\":{\"directories\":" << audit.directories()
                       << ",\"system_events\":" << audit.transitions()
