@@ -21,9 +21,9 @@ python3 tools/verify_session.py /path/to/your.itch \
   --output session-report.json
 ```
 
-Without `--symbol`, all live orders remain checked through the canonical digest. With `--symbol`, the final full-depth FIFO queue, per-level sizes, and best bid/ask for that ticker are also compared. Stock locates are resolved from the session's `R` messages rather than assumed from an earlier day.
+The `--independent` verifier now compares a separate FIFO-sensitive fingerprint for **every nonempty stock locate** at EOF, in addition to intermediate whole-book checkpoints. This makes a disagreement attributable to a stock locate, without requiring a huge JSON snapshot for every ticker. With `--symbol`, the final full-depth FIFO queue, per-level sizes, and best bid/ask for that ticker are also compared. Stock locates are resolved from the session's `R` messages rather than assumed from an earlier day.
 
-`--checkpoint-interval` produces an ordered list of intermediate state summaries. These checkpoints show *where* two implementations first disagree, rather than only whether their final states match. For a very large feed, a small interval can be expensive: both the C++ and Python implementations walk the entire live book to compute every checkpoint. Choose a longer interval for initial sessions, then narrow a mismatch with a shorter replay. The script also compares total frame counts, applied/ignored records, full-session auditing counters, and exact bytes consumed. A SHA-256 of the source is recorded for repeatability. Raw feed bytes are never written to the report.
+`--checkpoint-interval` produces an ordered list of intermediate state summaries. These checkpoints show *where* two implementations first disagree, rather than only whether their final states match. For a very large feed, a small interval can be expensive: both the C++ and Python implementations walk the entire live book to compute every checkpoint. Choose a longer interval for initial sessions, then narrow a mismatch with a shorter replay. The script also compares total frame counts, applied/ignored records, full-session auditing counters, and exact bytes consumed. A SHA-256 of the source is recorded for repeatability; verification also checks the file hash before and after both replay paths and the independent replay to reject a changing input. This is not a cryptographic signature or protection against adversarial file replacement. Raw feed bytes are never written to the report.
 
 To inspect the separate implementation without invoking C++:
 
@@ -35,7 +35,7 @@ Use `--allow-incomplete` in both scripts only when deliberately replaying a frag
 
 ## What has actually been tested
 
-The `aster-independent` test generates three fixed-seed sessions with three symbols each, thousands of live orders, partial executions, cancellations, deletes, price changes, replacements, and unrelated messages. It checks three stock snapshots and two buffered chunk sizes against the independent Python book at every 137 frames and at EOF. Corrupt framing is rejected instead of resynchronized. The test records no synthetic performance claims.
+The `aster-independent` test generates three fixed-seed sessions with three symbols each, thousands of live orders, partial executions, cancellations, deletes, price changes, replacements, and unrelated messages. It checks three stock snapshots and two buffered chunk sizes against the independent Python book at every 137 frames and at EOF. Corrupt framing is rejected instead of resynchronized. The `aster-rejection-matrix` suite adds 21 invalid and two valid generated sessions and requires the C++ `mmap`/`read()` readers and Python model to accept or reject the same inputs. The test records no synthetic performance claims.
 
 This is broader than the original short-lifecycle churn benchmark, but it remains generated data. Real Nasdaq historical session validation and a comparison against a separately maintained exchange reference are not complete. The QSE source is also required before a fair QSE-versus-Aster result can be published.
 

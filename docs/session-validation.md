@@ -2,7 +2,7 @@
 
 This is an *offline replay validator*, not a market-data certification tool. The decoder recognizes every ITCH 5.0 message type in the pinned format, but only `A/F/E/C/X/D/U` change the displayed order book. The `R` and `S` messages are used by optional session auditing.
 
-## Checks in v0.3
+## Session checks
 
 Run the command on a locally available, uncompressed historical file:
 
@@ -17,7 +17,7 @@ python3 tools/verify_session.py path/to/day.NASDAQ_ITCH50 --binary build/aster-r
 
 `--symbol AAPL` looks up a ticker from the `R` records in the file and displays its final top of book. It is not equivalent to filtering the feed by a ticker assumed to have a fixed locate across sessions.
 
-The verification script makes a streaming SHA-256 fingerprint of the original file, runs full replay twice (`mmap` and bounded `read()`), runs book invariants, compares non-timing fields, verifies that all bytes were consumed, and emits a JSON report. The two paths share the same decoder and book, so agreement does **not** constitute independent validation of market-data semantics.
+The verification script makes a streaming SHA-256 fingerprint of the original file, runs full replay twice (`mmap` and bounded `read()`), runs book invariants, compares non-timing fields, verifies that all bytes were consumed, and emits a JSON report. If the input file changes during the verification, the report is rejected rather than attributed to a stale SHA-256. The two paths share the same decoder and book, so agreement does **not** constitute independent validation of market-data semantics.
 
 ### Meaning of a failure
 
@@ -29,7 +29,7 @@ The verification script makes a streaming SHA-256 fingerprint of the original fi
 
 ## Independent book cross-check
 
-`tools/verify_session.py --independent --checkpoint-interval N` also runs a separately written Python decoder and price-time FIFO book. It checks the C++ intermediate state digests and final result, and can compare a full depth snapshot for one symbol with `--symbol`. This addresses shared state errors that two C++ I/O paths cannot expose. See [reference validation](reference-validation.md) for details and limitations.
+`tools/verify_session.py --independent --checkpoint-interval N` also runs a separately written Python decoder and price-time FIFO book. It checks C++ intermediate book state, every nonempty locate fingerprint at EOF, and optionally a full-depth snapshot for one symbol with `--symbol`. This addresses shared state errors that two C++ I/O paths cannot expose. See [reference validation](reference-validation.md) for details and limitations.
 
 ## What is still missing
 

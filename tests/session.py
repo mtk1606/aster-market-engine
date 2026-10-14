@@ -84,6 +84,12 @@ def main():
             ["python3", str(script), str(fixture), "--binary", BIN, "--chunk", "7"], text=True))
         assert report["state_equivalent"] and report["mapped"]["frames"] == 7
         assert report["source_size_bytes"] == len(data)
+    digests = replay(data, ["--complete", "--locate-digests"])
+    assert set(digests["locate_digests"]) == {"7", "8"}
+    assert digests["locate_digests"]["7"] != digests["locate_digests"]["8"]
+    empty_book = replay(start + directory + msg("S", code="C", timestamp=3),
+                        ["--complete", "--locate-digests"])
+    assert empty_book["locate_digests"] == {}
     terminated = replay(data + b"\x00\x00",
                         ["--complete", "--symbol", "TEST", "--snapshot", "--validate"])
     assert terminated["digest"] == result["digest"]

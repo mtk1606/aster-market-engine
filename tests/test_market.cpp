@@ -153,6 +153,27 @@ void book_transitions() {
     equivalent.apply(add(3, 'S', 1'010'000, 50));
     check(book.digest() == equivalent.digest(), "canonical digest ignores insertion order");
 }
+void locate_digest_checks() {
+    Book first;
+    first.apply(add(10, 'B', 1'000'000, 10, 4));
+    first.apply(add(11, 'B', 1'000'000, 20, 4));
+    first.apply(add(12, 'S', 1'010'000, 30, 5));
+    auto fingerprints = first.locate_digests();
+    check(fingerprints.size() == 2, "one fingerprint per nonempty locate");
+    Book reordered;
+    reordered.apply(add(11, 'B', 1'000'000, 20, 4));
+    reordered.apply(add(10, 'B', 1'000'000, 10, 4));
+    reordered.apply(add(12, 'S', 1'010'000, 30, 5));
+    check(first.top(4).bid_shares == reordered.top(4).bid_shares,
+          "price/quantity alone does not prove FIFO");
+    check(first.locate_digests().at(4) != reordered.locate_digests().at(4),
+          "changed FIFO order changes only its local fingerprint");
+    check(first.locate_digests().at(5) == reordered.locate_digests().at(5),
+          "other symbol fingerprint unaffected");
+    first.apply(modify('D', 12, 0, 0, 0, 5));
+    check(!first.locate_digests().contains(5), "empty locate omitted from fingerprints");
+    first.validate();
+}
 void malformed_events() {
     auto p = packet('A');
     put(p, 13, 1, 8);
@@ -172,6 +193,7 @@ int main() {
         wire_bounds();
         framing();
         book_transitions();
+        locate_digest_checks();
         malformed_events();
         std::cout << "market tests passed\n";
     } catch (const std::exception& e) {

@@ -124,6 +124,8 @@ def main():
                     assert output["mapped"]["frames"] == count
                     assert output["independent_reference"]["matched"]
                     assert output["mapped"]["live_orders"] > 800
+                    assert len(output["mapped"]["locate_digests"]) == 3
+                    assert output["independent_reference"]["nonempty_locates_compared"] == 3
             # The two decoders must reject the same corrupt protocol header.
             broken = Path(tmp) / "bad.itch"
             broken.write_bytes(payload[:2] + b"Z" + payload[3:])

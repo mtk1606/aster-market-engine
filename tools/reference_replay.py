@@ -146,19 +146,26 @@ class ReferenceBook:
         self.applied += 1
         return True
 
-    def digest(self) -> str:
+    def _digest_locations(self, locations: list[int]) -> str:
         value = FNV_OFFSET
-        # Deliberately reconstruct canonical traversal without using C++ containers.
-        locations = sorted({key[0] for key in self.levels})
+        # The book's wire-independent fingerprint serializes five uint64
+        # fields per live order, in price-time sequence. This implementation
+        # uses struct rather than the C++ bitwise mix loop.
         for locate in locations:
             for side in "BS":
                 prices = (key[2] for key in self.levels if key[0] == locate and key[1] == side)
                 for price in sorted(prices, reverse=(side == "B")):
                     for ref, qty in self.levels[(locate, side, price)].items():
-                        for number in (locate, ord(side), price, ref, qty):
-                            for octet in number.to_bytes(8, "little"):
-                                value = ((value ^ octet) * FNV_PRIME) & MASK
+                        for octet in struct.pack("<QQQQQ", locate, ord(side), price, ref, qty):
+                            value = ((value ^ octet) * FNV_PRIME) & MASK
         return format(value, "x")
+
+    def digest(self) -> str:
+        return self._digest_locations(sorted({key[0] for key in self.levels}))
+
+    def locate_digests(self) -> dict[str, str]:
+        return {str(locate): self._digest_locations([locate])
+                for locate in sorted({key[0] for key in self.levels})}
 
     def snapshot(self, locate: int) -> dict:
         result: dict[str, list] = {}
@@ -175,7 +182,7 @@ class ReferenceBook:
 
 
 def replay(path: Path, interval: int, complete: bool = True, limit: int | None = None,
-           selected_symbol: str | None = None):
+           selected_symbol: str | None = None, locate_digests: bool = False):
     if not interval or interval < 0:
         raise ReferenceError("checkpoint interval must be positive")
     if complete and limit is not None:
@@ -265,6 +272,8 @@ def replay(path: Path, interval: int, complete: bool = True, limit: int | None =
             "types": dict(types),
         },
     }
+    if locate_digests:
+        result["locate_digests"] = book.locate_digests()
     if selected_symbol is not None:
         if selected_symbol not in by_symbol:
             raise ReferenceError(f"unknown stock: {selected_symbol}")
@@ -289,9 +298,11 @@ def main():
     parser.add_argument("--allow-incomplete", action="store_true")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--symbol")
+    parser.add_argument("--locate-digests", action="store_true")
     args = parser.parse_args()
     print(json.dumps(replay(args.file, args.interval, complete=not args.allow_incomplete,
-                            limit=args.limit, selected_symbol=args.symbol), sort_keys=True))
+                            limit=args.limit, selected_symbol=args.symbol,
+                            locate_digests=args.locate_digests), sort_keys=True))
 
 
 if __name__ == "__main__":

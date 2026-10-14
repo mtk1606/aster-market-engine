@@ -22,12 +22,14 @@ def sha256(path: Path):
     return digest.hexdigest()
 
 
-def run(binary, source, method, chunk, strict, interval=0, symbol=None):
+def run(binary, source, method, chunk, strict, interval=0, symbol=None, locate_digests=False):
     cmd = [str(binary), str(source), "--io", method, "--validate", "--audit"]
     if strict:
         cmd += ["--complete"]
     if interval:
         cmd += ["--checkpoint-interval", str(interval)]
+    if locate_digests:
+        cmd += ["--locate-digests"]
     if symbol:
         cmd += ["--symbol", symbol, "--snapshot"]
     if method == "read":
@@ -74,17 +76,21 @@ def main():
     if args.independent and args.checkpoint_interval < 1:
         parser.error("checkpoint interval must be positive")
     interval = args.checkpoint_interval if args.independent else 0
+    initial_size = args.file.stat().st_size
+    initial_hash = sha256(args.file)
     mapped = run(binary, args.file, "mmap", args.chunk, not args.allow_incomplete,
-                 interval, args.symbol)
+                 interval, args.symbol, args.independent)
     streamed = run(binary, args.file, "read", args.chunk, not args.allow_incomplete,
-                   interval, args.symbol)
+                   interval, args.symbol, args.independent)
     compare(mapped, streamed)
     size = args.file.stat().st_size
+    if initial_size != size or initial_hash != sha256(args.file):
+        raise RuntimeError("input file changed during verification; results discarded")
     if mapped["bytes_consumed"] != size:
         raise RuntimeError("not all file bytes consumed")
     record = {
-        "format": "aster-session-verification-v1",
-        "source_sha256": sha256(args.file),
+        "format": "aster-session-verification-v2",
+        "source_sha256": initial_hash,
         "source_size_bytes": size,
         "complete_session_required": not args.allow_incomplete,
         "mapped": mapped,
@@ -94,15 +100,19 @@ def main():
     }
     if args.independent:
         reference = independent_replay(args.file, interval, complete=not args.allow_incomplete,
-                                       selected_symbol=args.symbol)
+                                       selected_symbol=args.symbol, locate_digests=True)
         differences = [key for key in reference if mapped.get(key) != reference[key]]
         if differences:
             raise RuntimeError("independent Python/C++ mismatch in: " + ", ".join(differences))
+        # The verifier reads the source a third time; reject stale fingerprints.
+        if initial_size != args.file.stat().st_size or initial_hash != sha256(args.file):
+            raise RuntimeError("input file changed during independent replay")
         record["independent_reference"] = {
             "matched": True,
             "engine": "separate Python struct decoder and ordered-dict FIFO book",
             "checkpoints": len(reference["checkpoints"]),
             "symbol_snapshot_compared": args.symbol,
+            "nonempty_locates_compared": len(reference["locate_digests"]),
         }
     payload = json.dumps(record, indent=2, sort_keys=True) + "\n"
     if args.output:

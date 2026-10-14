@@ -235,6 +235,29 @@ std::uint64_t Book::digest() const {
     }
     return hash;
 }
+std::map<std::uint16_t, std::uint64_t> Book::locate_digests() const {
+    std::map<std::uint16_t, std::uint64_t> result;
+    for (const auto& [locate, book] : books_) {
+        if (book.bids.empty() && book.asks.empty()) continue;
+        std::uint64_t hash = 14695981039346656037ULL;
+        const auto consume = [&](const auto& levels, char side) {
+            for (const auto& [price, level] : levels) {
+                for (auto id : level.fifo) {
+                    const Order& order = orders_.at(id).order;
+                    mix(hash, order.locate);
+                    mix(hash, static_cast<std::uint8_t>(side));
+                    mix(hash, price);
+                    mix(hash, id);
+                    mix(hash, order.shares);
+                }
+            }
+        };
+        consume(book.bids, 'B');
+        consume(book.asks, 'S');
+        result.emplace(locate, hash);
+    }
+    return result;
+}
 void Book::validate() const {
     std::unordered_set<std::uint64_t> seen;
     for (auto const& [locate, book] : books_) {

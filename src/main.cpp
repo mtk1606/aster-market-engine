@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "usage: aster-replay FILE [--io mmap|read] [--chunk N] "
                      "[--locate N|--symbol STOCK] [--limit N] [--validate] "
-                     "[--audit] [--complete] [--snapshot] [--walk B|S N]\n";
+                     "[--audit] [--complete] [--snapshot] [--walk B|S N] [--locate-digests]\n";
         return 2;
     }
     try {
@@ -80,6 +80,7 @@ int main(int argc, char** argv) {
         std::vector<Checkpoint> checkpoints;
         bool validate = false;
         bool show_snapshot = false;
+        bool show_locate_digests = false;
         char walk_side = '\0';
         std::uint64_t walk_size = 0;
         std::string_view io = "mmap";
@@ -120,6 +121,7 @@ int main(int argc, char** argv) {
             else if (arg == "--audit") audit_enabled = true;
             else if (arg == "--complete") { audit_enabled = true; require_complete = true; }
             else if (arg == "--snapshot") show_snapshot = true;
+            else if (arg == "--locate-digests") show_locate_digests = true;
             else throw std::runtime_error("unknown option: " + std::string(arg));
         }
         if (selected_symbol && locate) throw std::runtime_error("choose --locate or --symbol, not both");
@@ -195,6 +197,17 @@ int main(int argc, char** argv) {
                           << std::dec << "\"}";
             }
             std::cout << ']';
+        }
+        if (show_locate_digests) {
+            std::cout << ",\"locate_digests\":{";
+            bool first = true;
+            for (const auto& [book_locate, hash] : book.locate_digests()) {
+                if (!first) std::cout << ',';
+                first = false;
+                std::cout << '"' << book_locate << "\":\""
+                          << std::hex << hash << std::dec << '"';
+            }
+            std::cout << '}';
         }
         if (audit_enabled) {
             std::cout << ",\"audit\":{\"directories\":" << audit.directories()

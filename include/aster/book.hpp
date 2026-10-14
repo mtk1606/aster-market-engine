@@ -51,6 +51,8 @@ public:
     std::size_t orders() const { return orders_.size(); }
     std::uint64_t applied() const { return applied_; }
     std::uint64_t digest() const; // deterministic final-state + FIFO priority hash
+    // Each nonempty locate has a separate FIFO-sensitive state fingerprint.
+    std::map<std::uint16_t, std::uint64_t> locate_digests() const;
     void validate() const;       // independently verify orders, queue, aggregates
 private:
     struct Level {
