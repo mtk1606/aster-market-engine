@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(aster_market VERSION 0.6.0 LANGUAGES CXX)
+project(aster_market VERSION 0.7.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -8,10 +8,12 @@ option(ASTER_SANITIZE "Enable address and undefined behavior sanitizers" OFF)
 add_library(aster STATIC src/itch.cpp src/book.cpp src/mapped_file.cpp src/stream_file.cpp src/session.cpp)
 target_include_directories(aster PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(aster PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+add_executable(aster-book-bench bench/aster_book_driver.cpp)
+target_link_libraries(aster-book-bench PRIVATE aster)
 add_executable(aster-replay src/main.cpp)
 target_link_libraries(aster-replay PRIVATE aster)
 if(ASTER_SANITIZE)
-  foreach(target aster aster-replay)
+  foreach(target aster aster-replay aster-book-bench)
     target_compile_options(${target} PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(${target} PUBLIC -fsanitize=address,undefined)
   endforeach()
@@ -36,6 +38,9 @@ if(BUILD_TESTING)
   add_test(NAME aster-stage-benchmark
     COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
       python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/stage_bench.py)
+  add_test(NAME aster-book-workload
+    COMMAND ${CMAKE_COMMAND} -E env ASTER_BOOK_BINARY=$<TARGET_FILE:aster-book-bench>
+      python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/book_workload.py)
   add_test(NAME aster-session
     COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
       python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/session.py)

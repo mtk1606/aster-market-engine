@@ -4,7 +4,7 @@ A C++20 market-data replay engine built around Nasdaq TotalView-ITCH 5.0. It rea
 
 I started with the feed and the book rather than the trading strategy. If the parser misses a boundary, or a cancel silently changes the wrong order, everything built on top of that data is suspect. This repository is an attempt to make those failures visible and testable before adding execution research.
 
-**Status:** v0.6, offline research software. It does not connect to an exchange, place orders, model hidden liquidity, or infer the true queue position of a hypothetical order.
+**Status:** v0.7, offline research software. It does not connect to an exchange, place orders, model hidden liquidity, or infer the true queue position of a hypothetical order.
 
 ## What works today
 
@@ -29,7 +29,18 @@ python3 tools/bench_stages.py /path/to/uncompressed.itch \
   --binary build/aster-replay --complete --repetitions 5 --output bench.json
 ```
 
-The measured difference is **not** an isolated book-update latency distribution. See [QSE comparison requirements](docs/qse-comparison.md); the original QSE source has not been obtained, so no QSE head-to-head claims are made.
+The measured difference is **not** an isolated book-update latency distribution. See [QSE comparison requirements](docs/qse-comparison.md); QSE has not been run here: the supplied archive is view-only under an All Rights Reserved license, and no head-to-head claim is made.
+
+## Reproducible book-only comparison protocol
+
+There is now a separately timed add/delete book-kernel path (`aster-book-bench`) and an independent Python reference for exact FIFO state. This makes it possible to check a common operation workload without confusing Aster's ITCH decoding with another project's strategy engine:
+
+```bash
+python3 tools/compare_books.py --aster build/aster-book-bench \
+  --operations 200000 --depth 1024 --repetitions 5
+```
+
+The source archive made available for QSE includes a restrictive third-party license. **No QSE code is copied, compiled, or included here.** A separately authorized QSE executable can participate through the documented JSON protocol (`--qse-driver`). The current measured result is for Aster **only**; read the [comparison methodology](docs/qse-comparison.md) and [measured baseline](docs/book-benchmark.md) before quoting any throughput.
 
 ## Build and run
 
@@ -143,10 +154,10 @@ The next work is less about adding features and more about removing uncertainty:
 1. Run a complete historical session with appropriate data rights through both engines, resolve any discrepancies, and compare against a separately maintained reference where available. Use the [validation runbook](docs/validation-runbook.md) to keep the evidence reproducible.
 2. Extend fuzzing beyond smoke runs; keep minimized failing inputs as permanent regression tests.
 3. Measure parser cost, book-update cost, memory use, and event latency separately on realistic book depths.
-4. Connect this replay path to the existing QSE research engine through a stable event interface.
+4. Connect the book-only workload to an independently authorized QSE driver, then separately design a feed-to-research event contract.
 5. Only then extend execution simulations with explicit latency, queue uncertainty, and fee assumptions.
 
-Aster is not yet demonstrably faster or more correct than QSE: that requires side-by-side measurement against a pinned QSE revision. Until then, the goal is a smaller foundation that is easier to verify.
+Aster is not demonstrably faster or more correct than QSE: a directly comparable, licensed QSE run has not been performed. Until then, the goal is a smaller foundation that is easier to verify.
 
 ## Data and licensing
 
