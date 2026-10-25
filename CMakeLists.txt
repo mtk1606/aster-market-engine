@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(aster_market VERSION 0.8.2 LANGUAGES CXX)
+project(aster_market VERSION 0.8.3 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -46,6 +46,9 @@ if(BUILD_TESTING)
       python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/session.py)
   add_test(NAME aster-reference-hash-index
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/reference_hash_index.py)
+  add_test(NAME aster-sampled-symbol
+    COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
+      python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/sampled_symbol.py)
 endif()
 
 if(ASTER_FUZZ)

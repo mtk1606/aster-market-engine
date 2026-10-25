@@ -10,6 +10,30 @@ The reference uses `struct.unpack_from`, an explicit wire-length table, a sequen
 
 Both implementations still follow the same ITCH specification and make the same *modeling* choice to reconstruct only visible order messages (`A/F/E/C/X/D/U`). This is an independent implementation check, not independent proof of the exchange's true state or actual execution queue position.
 
+## Targeted late-frame symbol comparisons
+
+The prefix verifier retains every instrument in Python, so verifying a much
+later frame can use excessive Python memory. Instead, `tools/verify_symbol.py`
+reads the file **from frame 1** and reconstructs only one named stock's resting
+orders, preserving all of that stock's earlier adds, reductions, deletes and
+replacements. In parallel, the normal C++ replay builds and validates the
+complete multi-stock book through the same frame number. It compares the
+selected locate, exact full-depth bid/ask FIFO order arrays, selected-locate
+state fingerprint, byte count and frame count. It also hashes the checked file
+prefix to make results repeatable.
+
+```bash
+python3 tools/verify_symbol.py "$HOME/itch-data/01302019.NASDAQ_ITCH50" \
+  --binary build-release/aster-replay --symbol AAPL --limit 120000000 \
+  --output "$HOME/itch-data/aapl-120m.json"
+```
+
+This is independent verification **only of the named stock** at the specified
+checkpoint; it does not independently check all other stock books or every
+intermediate queue. It is not a full-session independent validation certificate.
+The synthetic `aster-sampled-symbol` test exercises multiple symbols, order
+replacements, fully empty books, repeated directories and rejection cases.
+
 ## Run it
 
 Build the project normally, then run:

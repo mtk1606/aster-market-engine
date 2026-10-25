@@ -169,7 +169,39 @@ Following the Python reference digest optimization in commit `42ee22978d81474fb2
 
 The checked prefix spans approximately 2.71% of all 368,366,634 frames. The GNU-time peak RSS refers to the measured Python checker process and does not establish peak C++ child-process memory. This run completed comfortably within a 600-second timeout, versus a **different-sized** pre-optimization 20-million-frame run still active after 34 minutes. These observations are consistent with an effective optimization, but are not a controlled same-input before/after speedup measurement.
 
-A 20-million-message rerun with ten checkpoints, bounded by the same timeout and monitored for resource use, is the next test. Prefix-only verification still leaves later-day intermediate order states unchecked.
+The v0.8.2 optimized 20-million-frame rerun has since passed all ten independent checkpoints (details below). Prefix-only verification still leaves later-day intermediate order states unchecked.
+
+## Independent Python FIFO validation — 20-million-frame prefix (v0.8.2)
+
+The repeated bounded verification on the same WSL2 host completed with exit code 0 and all ten C++/Python checkpoints equal, following the earlier unsuccessful, CPU-bound run with the pre-optimization Python hash routine. The comparator reported `differences: {}` and `independent_match: true`.
+
+| Field | Observed local result |
+| --- | --- |
+| Frames independently compared | 20,000,000 |
+| Source bytes consumed by prefix | 637,953,260 |
+| Prefix SHA-256 | `e24c84422e4b891bab714e89f935a82078f2bdf9e4f59cc023097bbcedee7ddb` |
+| Checkpoint interval | 2,000,000 frames |
+| Matching checkpoints | 10/10 |
+| `independent_match` | `true` |
+| `differences` | `{}` |
+| Exit code | 0 |
+| C++ bounded replay time | 8.309412 seconds |
+| Full Python checker wall time (GNU `time`) | 97.35 seconds |
+| Python checker user CPU time | 95.62 seconds |
+| Maximum reported resident set size | 909,636 KiB (~888.3 MiB) |
+
+This validates **the first 20 million frames (approximately 5.43% of this session)**, not arbitrary middle- or late-day order-book snapshots and not a full-session independent replay. The 97.35-second completion versus the earlier pre-optimization run still active after 34 minutes demonstrates markedly lower time-to-completion for the optimized reference in this setup, but the interrupted earlier run prevents computing an exact before/after speedup.
+
+## Follow-on later-session methodology (v0.8.3)
+
+A new `tools/verify_symbol.py` utility is available to sample live book state
+at later frame boundaries without holding every listed company's resting
+orders in Python memory. It streams **all frames from the start**, retains
+only the selected stock's FIFO book, and compares the exact full-depth book
+and selected-stock fingerprint against a validated C++ full-multi-stock replay
+at the same frame. No later-session result is claimed until it has actually
+passed on the contributor's recording. Sampled-stock agreement cannot prove
+full-day agreement for every security.
 
 ## Interpretation and remaining checks
 
@@ -180,4 +212,4 @@ A 20-million-message rerun with ten checkpoints, bounded by the same timeout and
 - The separate authorized Aster/QSE synthetic add/delete microbenchmark must **not** be described as a comparison of real Nasdaq-feed end-to-end systems.
 - Peak replay-process RSS was not collected in this run; post-run `free -h` is not peak-process memory.
 
-The next acceptance goals are prefix/reference matches at multiple checkpoints, wider representative windows under measured memory constraints, a full-day independent replay when practical, and third-party/vendor spot checks.
+The next acceptance goals are selected-symbol independent snapshots at later session frames (using `tools/verify_symbol.py`), broader book and venue-specific spot checks, a full-day independent replay when practical, and third-party/vendor verification.
