@@ -148,6 +148,29 @@ After the five-million-message success, a 20-million-frame independent prefix ru
 
 Inspection found that the original Python reference digest scanned all global price levels once **per active stock locate** at each intermediate checkpoint. The v0.8.2 implementation creates a temporary `(locate, side)` price index for each checkpoint and retains the original canonical hash ordering. A dedicated scan-based regression test protects digest semantics. The 20-million-message attempt has **not** produced a passing report and cannot be cited as independently validated. Retry with a smaller incremental comparison before a larger run.
 
+## Independent Python FIFO validation — 10-million-frame prefix (v0.8.2)
+
+Following the Python reference digest optimization in commit `42ee22978d81474fb27bad27d7905ea65ffc05d8`, the contributor reran a bounded independent comparison on the same WSL2 laptop. All nine local test suites passed. The independent C++/Python prefix replay completed successfully and matched all five intermediate checkpoints.
+
+| Field | Observed local result |
+| --- | --- |
+| Messages compared | 10,000,000 |
+| Prefix bytes consumed | 314,608,616 |
+| Prefix SHA-256 | `efdee1d09985f03297f07a5cb294ac4308484c14b4a77ae323518a31cb9db246` |
+| Checkpoint interval | 2,000,000 messages |
+| Checkpoints matched | 5 of 5 |
+| `independent_match` | `true` |
+| `differences` | `{}` |
+| Exit status | 0 |
+| C++ bounded replay elapsed (reported by checker) | 1.986348 s |
+| Whole verification wall time (GNU time) | 24.18 s |
+| User CPU time | 24.17 s |
+| Maximum resident set size reported by GNU time | 230,296 KiB (~224.9 MiB) |
+
+The checked prefix spans approximately 2.71% of all 368,366,634 frames. The GNU-time peak RSS refers to the measured Python checker process and does not establish peak C++ child-process memory. This run completed comfortably within a 600-second timeout, versus a **different-sized** pre-optimization 20-million-frame run still active after 34 minutes. These observations are consistent with an effective optimization, but are not a controlled same-input before/after speedup measurement.
+
+A 20-million-message rerun with ten checkpoints, bounded by the same timeout and monitored for resource use, is the next test. Prefix-only verification still leaves later-day intermediate order states unchecked.
+
 ## Interpretation and remaining checks
 
 - Both C++ readers use the **same decoder and book implementation**. Agreement proves I/O path consistency on this recording but **not** correctness against an independent full-day oracle.
