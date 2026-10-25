@@ -217,6 +217,7 @@ int main(int argc, char** argv) {
         }
         if (audit_enabled) {
             std::cout << ",\"audit\":{\"directories\":" << audit.directories()
+                      << ",\"directory_repeats\":" << audit.directory_repeats()
                       << ",\"system_events\":" << audit.transitions()
                       << ",\"opened\":" << (audit.opened() ? "true" : "false")
                       << ",\"closed\":" << (audit.closed() ? "true" : "false")

@@ -11,13 +11,17 @@ Run the command on a locally available, uncompressed historical file:
 python3 tools/verify_session.py path/to/day.NASDAQ_ITCH50 --binary build/aster-replay --output replay-report.json
 ```
 
-`--audit` maintains the day's map of stock locates to tickers. A ticker is an 8-byte padded stock field; a locate is a *per-session identifier*, not a stable symbol ID. Auditing checks that each stock-directory mapping is unique, that added orders reference a declared locate and the same stock string, and that order updates refer to a declared locate. It records message-type frequencies and counts decreasing timestamps (instead of hiding them).
+`--audit` maintains the day's map of stock locates to tickers. A ticker is an 8-byte padded stock field; a locate is a *per-session identifier*, not a stable symbol ID. Auditing checks that each stock-directory mapping remains consistent, that added orders reference a declared locate and the same stock string, and that order updates refer to a declared locate. An identical directory announcement for the same locate is accepted and counted under `audit.directory_repeats`; `audit.directories` counts distinct locates. The complete 28-byte directory body (stock and every reference-data field, excluding tracking number/timestamp) must match exactly. A changed symbol, reassigned locate, or changed body remains an error requiring investigation. The validator also records message-type frequencies and counts decreasing timestamps (instead of hiding them).
 
 `--complete` additionally requires `S/O` Start of Messages as the first event, `S/C` End of Messages, and no timestamp regressions. It accepts an *optional trailing 2-byte zero-length BinaryFILE terminator*, but only when it is the last two bytes. Outside `--complete`, a zero-length frame remains an error to preserve strict prefix-replay behavior. `--complete` cannot be combined with `--limit`.
 
 `--symbol AAPL` looks up a ticker from the `R` records in the file and displays its final top of book. It is not equivalent to filtering the feed by a ticker assumed to have a fixed locate across sessions.
 
 The verification script makes a streaming SHA-256 fingerprint of the original file, runs full replay twice (`mmap` and bounded `read()`), runs book invariants, compares non-timing fields, verifies that all bytes were consumed, and emits a JSON report. If the input file changes during the verification, the report is rejected rather than attributed to a stale SHA-256. The two paths share the same decoder and book, so agreement does **not** constitute independent validation of market-data semantics.
+
+### Repeated stock-directory announcements (real-feed discovery)
+
+A reported ITCH recording dated January 30, 2019 contains a second `R` announcement for locate `1335`, symbol `CFG-D`, at byte offset `51,681,596`; the first was at byte `54,855`. A local byte-level diagnostic showed identical 28-byte directory bodies. Version 0.8.1 permits this specific idempotent repetition and counts it. This is *not* a blanket waiver for conflicting or changed directory fields. The full session has **not yet** passed end-to-end replay, so later errors must be assessed individually.
 
 ### Meaning of a failure
 

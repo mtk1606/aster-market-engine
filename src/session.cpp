@@ -54,13 +54,24 @@ void SessionAudit::observe(Frame frame, const Event& event) {
         if (!opened_) throw Error(frame.offset, "stock directory before start of messages");
         if (event.locate == 0) throw Error(frame.offset + 3, "stock directory uses locate zero");
         const auto stock = stock_field(frame, 11);
-        if (by_locate_.contains(event.locate))
-            throw Error(frame.offset, "duplicate stock locate in directory");
-        if (by_symbol_.contains(stock))
-            throw Error(frame.offset, "duplicate stock symbol in directory");
-        by_locate_.emplace(event.locate, stock);
-        by_symbol_.emplace(stock, event.locate);
-        ++directories_;
+        // The stock-directory data occupies bytes 11..38. The leading header
+        // (including tracking number and timestamp) may differ on reannouncement.
+        const std::string fields(reinterpret_cast<const char*>(frame.payload.data() + 11), 28);
+        const auto located = by_locate_.find(event.locate);
+        const auto named = by_symbol_.find(stock);
+        if (located != by_locate_.end() || named != by_symbol_.end()) {
+            if (located == by_locate_.end() || located->second != stock ||
+                named == by_symbol_.end() || named->second != event.locate)
+                throw Error(frame.offset, "conflicting stock directory mapping");
+            if (directory_fields_.at(event.locate) != fields)
+                throw Error(frame.offset, "conflicting stock directory fields");
+            ++directory_repeats_;
+        } else {
+            by_locate_.emplace(event.locate, stock);
+            by_symbol_.emplace(stock, event.locate);
+            directory_fields_.emplace(event.locate, fields);
+            ++directories_;
+        }
     } else if (event.kind == Kind::Add) {
         const auto found = by_locate_.find(event.locate);
         if (found == by_locate_.end()) throw Error(frame.offset, "order add references unknown stock locate");

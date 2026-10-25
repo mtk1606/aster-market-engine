@@ -23,8 +23,10 @@ def make_scenarios():
     good = start + directory + add + close
     payloads = {"valid": good,
                 "valid_terminator": good + b"\0\0",
+                "valid_reannouncement": start + directory + frame("R", locate=7, stock="TEST", stamp=3) + add + close,
                 "missing_close": start + directory + add,
-                "duplicate_directory": start + directory + directory + add + close,
+                "conflicting_locate": start + directory + frame("R", locate=7, stock="ALTER", stamp=3) + add + close,
+                "conflicting_symbol": start + directory + frame("R", locate=8, stock="TEST", stamp=3) + add + close,
                 "duplicate_order": start + directory + add + add + close,
                 "unknown_order": start + directory + frame("E", locate=7, order=99, shares=1, stamp=4) + close,
                 "excess_cancel": start + directory + add + frame("X", locate=7, order=77, shares=21, stamp=4) + close,
@@ -43,6 +45,9 @@ def make_scenarios():
                 "zero_price": start + directory + frame("A", locate=7, order=77, price=0, stamp=3) + close,
                 "zero_shares": start + directory + frame("A", locate=7, order=77, shares=0, stamp=3) + close,
                 "zero_order": start + directory + frame("A", locate=7, order=0, stamp=3) + close}
+    changed_directory = bytearray(frame("R", locate=7, stock="TEST", stamp=3))
+    changed_directory[2 + 19] = ord("Q")
+    payloads["conflicting_directory_fields"] = start + directory + bytes(changed_directory) + add + close
     wrong_side = bytearray(add)
     wrong_side[2+19] = ord("?")
     payloads["invalid_side"] = start + directory + bytes(wrong_side) + close
@@ -71,7 +76,8 @@ def main():
             reference = invoke([sys.executable, str(REFERENCE), str(source), "--interval", "2"])
             if (reference.returncode == 0) != expected_success:
                 raise AssertionError(f"{name} python: unexpected status: {reference.stdout} {reference.stderr}")
-    print(f"rejection matrix passed: {len(cases) - 2} invalid and 2 valid fixtures across three paths")
+    valid_count = sum(name.startswith("valid") for name in cases)
+    print(f"rejection matrix passed: {len(cases) - valid_count} invalid and {valid_count} valid fixtures across three paths")
 
 
 if __name__ == "__main__":

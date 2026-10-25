@@ -72,6 +72,7 @@ def main():
     assert result["symbol"] == "TEST" and result["locate"] == 7
     assert result["bid4"] == 1_250_000 and result["bid_shares"] == 15
     assert result["audit"]["directories"] == 2 and result["audit"]["closed"]
+    assert result["audit"]["directory_repeats"] == 0
     assert result["audit"]["types"] == {"S": 2, "R": 2, "A": 1, "F": 1, "E": 1}
     assert result["audit"]["timestamp_regressions"] == 0
     assert result["snapshot"]["bids"][0]["orders"] == [[101, 15]]
@@ -103,9 +104,23 @@ def main():
     replay(data, ["--complete", "--limit", "5"], "--complete cannot be used with --limit")
     replay(start + directory + a, ["--complete"], "session missing end-of-messages event")
     replay(directory + start, ["--audit"], "stock directory before start")
-    replay(start + directory + directory, ["--audit"], "duplicate stock locate")
+    # Same locate/symbol and all 28 directory bytes may be reannounced,
+    # even when the message timestamp differs. Count rather than remap.
+    repeated = msg("R", locate=7, stock="TEST", timestamp=3)
+    duplicated = replay(start + directory + repeated
+                        + msg("S", code="C", timestamp=4), ["--complete"])
+    assert duplicated["audit"]["directories"] == 1
+    assert duplicated["audit"]["directory_repeats"] == 1
+    assert duplicated["audit"]["types"]["R"] == 2
+    # A second announcement cannot silently change a locate, symbol or field.
+    replay(start + directory + msg("R", locate=7, stock="ALTER", timestamp=3),
+           ["--audit"], "conflicting stock directory mapping")
     replay(start + directory + msg("R", locate=9, stock="TEST", timestamp=3),
-           ["--audit"], "duplicate stock symbol")
+           ["--audit"], "conflicting stock directory mapping")
+    changed = bytearray(repeated)
+    changed[2 + 19] = ord("Q")  # Market Category field, after the 2-byte prefix.
+    replay(start + directory + bytes(changed),
+           ["--audit"], "conflicting stock directory fields")
     replay(start + directory + msg("A", locate=7, stock="WRONG", order=10, timestamp=3),
            ["--audit"], "order add stock differs")
     replay(start + msg("A", locate=7, order=10, timestamp=3),

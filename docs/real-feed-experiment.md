@@ -26,6 +26,9 @@ If the sidecar download is unavailable, the preparation tool can still calculate
 
 ## Replay and cross-check
 
+A first local run of the January 30, 2019 sample stopped at byte `51,681,596` on an exactly repeated stock-directory body for `CFG-D` (locate `1335`), previously seen at byte `54,855`. The strict reject-all-duplicates rule has been changed in v0.8.1 to accept **only** field-identical reannouncements and count them, while rejecting changed mappings/metadata. This first failure is not a successful full-session validation; run the updated engine on the same bytes and retain the next outcome.
+
+
 ```bash
 cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
 cmake --build build-release --parallel

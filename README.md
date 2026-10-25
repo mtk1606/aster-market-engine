@@ -4,7 +4,7 @@ A C++20 market-data replay engine built around Nasdaq TotalView-ITCH 5.0. It rea
 
 I started with the feed and the book rather than the trading strategy. If the parser misses a boundary, or a cancel silently changes the wrong order, everything built on top of that data is suspect. This repository is an attempt to make those failures visible and testable before adding execution research.
 
-**Status:** v0.8, offline research software. It does not connect to an exchange, place orders, model hidden liquidity, or infer the true queue position of a hypothetical order.
+**Status:** v0.8.1, offline research software. It does not connect to an exchange, place orders, model hidden liquidity, or infer the true queue position of a hypothetical order.
 
 ## What works today
 
@@ -12,7 +12,7 @@ I started with the feed and the book rather than the trading strategy. If the pa
 - **Full-depth displayed book.** Tracks bid/ask price levels, remaining size, and order references for multiple stock locates. Within each level, orders stay in observed FIFO order; partial reductions retain priority, and replacements join at the back.
 - **Two file readers.** A read-only `mmap` path and a bounded `read()` path that handles records split between chunks. Both feed the same message decoder and book implementation.
 - **Inspecting state.** Emits JSON counters, top-of-book quotes, optional full-depth snapshots, and a deterministic digest of the final live book. A non-mutating depth walk estimates the displayed average price for a requested quantity.
-- **Session-level validation.** Uses stock-directory messages to resolve session-specific locates, checks the stock field against the directory for new orders, recognizes opening/closing system events, audits per-type totals and timestamp regressions, and can require a complete day. An optional two-byte BinaryFILE terminator is supported in complete-session mode.
+- **Session-level validation.** Uses stock-directory messages to resolve session-specific locates, checks the stock field against the directory for new orders, recognizes opening/closing system events, audits per-type totals and timestamp regressions, and can require a complete day. Identical stock-directory reannouncements are accepted and counted; conflicting mappings or reference-data fields still fail. An optional two-byte BinaryFILE terminator is supported in complete-session mode.
 - **Independent replay cross-check.** A separate Python decoder and `OrderedDict` FIFO book produce intermediate checkpoints, per-locate book fingerprints, and full-depth symbol snapshots. Both C++ I/O paths must agree with it. A mismatched stock book is now identifiable without dumping the entire book.
 - **Tests that compare behavior, not just exit codes.** C++ unit tests, seeded randomized sequences checked against a separate Python book model, and a 23-case acceptance/rejection matrix exercised against both C++ readers and the Python decoder. Clang fuzz targets are included for the framing and book mutation surfaces.
 

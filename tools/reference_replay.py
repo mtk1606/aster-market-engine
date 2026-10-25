@@ -190,6 +190,8 @@ def replay(path: Path, interval: int, complete: bool = True, limit: int | None =
     book = ReferenceBook()
     by_locate: dict[int, str] = {}
     by_symbol: dict[str, int] = {}
+    directory_fields: dict[int, bytes] = {}
+    directory_repeats = 0
     types = Counter()
     opened = closed = False
     timestamps_decreased = 0
@@ -229,9 +231,15 @@ def replay(path: Path, interval: int, complete: bool = True, limit: int | None =
                 raise ReferenceError("invalid stock directory")
             name = symbol_field(data, 11)
             if name in by_symbol or locate in by_locate:
-                raise ReferenceError("duplicate stock directory")
-            by_locate[locate] = name
-            by_symbol[name] = locate
+                if by_locate.get(locate) != name or by_symbol.get(name) != locate:
+                    raise ReferenceError("conflicting stock directory mapping")
+                if directory_fields[locate] != data[11:]:
+                    raise ReferenceError("conflicting stock directory fields")
+                directory_repeats += 1
+            else:
+                by_locate[locate] = name
+                by_symbol[name] = locate
+                directory_fields[locate] = data[11:]
             ignored += 1
         elif kind in "AF":
             if locate not in by_locate or symbol_field(data, 24) != by_locate[locate]:
@@ -265,7 +273,8 @@ def replay(path: Path, interval: int, complete: bool = True, limit: int | None =
         "live_orders": len(book.live), "digest": book.digest(),
         "checkpoints": checkpoints,
         "audit": {
-            "directories": len(by_locate), "system_events": transitions,
+            "directories": len(by_locate), "directory_repeats": directory_repeats,
+            "system_events": transitions,
             "opened": opened, "closed": closed,
             "timestamp_regressions": timestamps_decreased,
             "last_timestamp_ns": previous_ts or 0,
