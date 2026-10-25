@@ -67,7 +67,7 @@ python3 tools/verify_session.py "$HOME/itch-data/01302019.NASDAQ_ITCH50" \
   --output "$HOME/itch-data/verification.json"
 ```
 
-Next, cross-check an initial bounded prefix with the *separate* Python FIFO model, without starting an all-day Python replay on a memory-constrained WSL2 instance:
+The initial bounded prefix has been cross-checked against the *separate* Python FIFO model without starting an all-day Python replay on a memory-constrained WSL2 instance:
 
 ```bash
 python3 tools/verify_prefix.py "$HOME/itch-data/01302019.NASDAQ_ITCH50" \
@@ -77,6 +77,27 @@ python3 tools/verify_prefix.py "$HOME/itch-data/01302019.NASDAQ_ITCH50" \
 ```
 
 This compares intermediate digests and full audit fields on the selected prefix, not on the remaining trading day. Any mismatch should be investigated without weakening input validation.
+
+## Independent Python FIFO validation — initial prefix
+
+After installing the bounded prefix checker from commit `a2f66b50039730c9e784c64e98b6d4158f15c97b`, the contributor ran the first 250,000 frames through both Aster's C++ book and the independent Python decoder/FIFO book. The checker compared book digest, live-order count, checkpoint snapshots (digests/counters), session audit and frame/byte totals.
+
+| Field | Observed local result |
+| --- | --- |
+| Source size | 11,245,883,092 bytes |
+| Prefix frames | 250,000 |
+| Prefix bytes | 7,119,580 |
+| Prefix SHA-256 | `8b6ce97578b7f48b1fc4719dbbdf9077cc41e64d9b0dec8f2feef2868f2541b4` |
+| Checkpoint cadence | 50,000 frames |
+| Checkpoint comparisons | 5 |
+| `independent_match` | `true` |
+| `differences` | `{}` |
+| Exit status | 0 |
+| C++ prefix replay time | 0.019744 s |
+
+The output was supplied from the contributor's laptop, rather than reproduced in the GitHub CI runners, which do not contain Nasdaq's multi-gigabyte recording. **The comparison covers only the first 250,000 frames** (about 0.068% of the 368,366,634-frame session). It does not yet exercise most of the trading day or establish full-session independent correctness.
+
+The next run should increase to 2,000,000 frames with periodic checkpoints, crossing the real-feed repeated-directory message at byte 51,681,596 if the prefix reaches that offset. Measure memory use before substantially increasing Python coverage.
 
 ## Interpretation and remaining checks
 
