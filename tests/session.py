@@ -75,6 +75,17 @@ def main():
     assert result["audit"]["directory_repeats"] == 0
     assert result["audit"]["types"] == {"S": 2, "R": 2, "A": 1, "F": 1, "E": 1}
     assert result["audit"]["timestamp_regressions"] == 0
+    # The real-feed prefix checker compares live FIFO state and checkpoints
+    # without depending on a complete (closing) session.
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "prefix.itch"
+        path.write_bytes(data)
+        checker = Path(__file__).parent.parent / "tools" / "verify_prefix.py"
+        checked = json.loads(subprocess.check_output(
+            ["python3", str(checker), str(path), "--binary", BIN,
+             "--limit", "6", "--checkpoint-interval", "2"],
+            text=True))
+        assert checked["independent_match"] and checked["checkpoint_count"] == 3
     assert result["snapshot"]["bids"][0]["orders"] == [[101, 15]]
     # Cross-reader report binds replay results to a SHA-256 of the exact bytes.
     with tempfile.TemporaryDirectory() as tmp:

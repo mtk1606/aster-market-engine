@@ -35,8 +35,7 @@ cmake --build build-release --parallel
 ctest --test-dir build-release --output-on-failure
 
 python3 tools/verify_session.py "$HOME/itch-data/01302019.NASDAQ_ITCH50" \
-  --binary build-release/aster-replay --independent \
-  --checkpoint-interval 1000000 \
+  --binary build-release/aster-replay \
   --output "$HOME/itch-data/verification.json"
 ```
 
