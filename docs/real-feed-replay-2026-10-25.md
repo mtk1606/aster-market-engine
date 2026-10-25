@@ -199,9 +199,32 @@ at later frame boundaries without holding every listed company's resting
 orders in Python memory. It streams **all frames from the start**, retains
 only the selected stock's FIFO book, and compares the exact full-depth book
 and selected-stock fingerprint against a validated C++ full-multi-stock replay
-at the same frame. No later-session result is claimed until it has actually
-passed on the contributor's recording. Sampled-stock agreement cannot prove
-full-day agreement for every security.
+at the same frame. The first independent later-frame stock snapshot (AAPL at frame 120 million) has now passed, as recorded below. Sampled-stock agreement cannot prove full-day agreement for every security.
+
+## Independent later-frame AAPL snapshot — 120-million-frame prefix (v0.8.3)
+
+The contributor successfully executed `tools/verify_symbol.py` using `--symbol AAPL --limit 120000000` against the same uncompressed January 30, 2019 Nasdaq recording. The checker streamed every preceding message from the beginning, reconstructed AAPL's displayed FIFO book independently in Python, and compared its **exact full-depth snapshot** and stock-locate fingerprint with C++ after Aster had validated/replayed all symbols through the requested frame. The laptop also passed 10 of 10 local CTest suites.
+
+| Field | Observed local result |
+| --- | --- |
+| Symbol / stock locate | `AAPL` / `14` |
+| Frames traversed | 120,000,000 (32.58% of the 368,366,634-frame session) |
+| Prefix bytes consumed | 3,671,028,994 |
+| Prefix SHA-256 | `789e93d3811ad49e739cc16ccf055062183d0b470780fd3cf51ced85b886c529` |
+| Independently reconstructed AAPL updates | 633,089 |
+| AAPL resting orders at checkpoint | 39,826 |
+| AAPL locate FIFO digest | `dcba309e8f6147c` |
+| `snapshot_matched` | `true` |
+| `independent_match` | `true` |
+| `differences` | `[]` |
+| Exit status | 0 |
+| C++ bounded replay time | 69.750124 seconds |
+| Full verifier elapsed wall time | 2:11.64 (131.64 seconds) |
+| Measured peak resident set size | 315,652 KiB (308.3 MiB) |
+
+**Scope:** AAPL's full visible resting queue and fingerprint agree at this frame, with all AAPL events from the start incorporated. The other stocks were replayed and internally validated in C++ but **not** independently reconstructed by Python. This is a sampled stock/state comparison, not independent whole-market correctness at frame 120 million. No vendor-authenticated MD5 or third-party book snapshot was used.
+
+For a first public v1.0 portfolio milestone, the remaining work is to cross-check additional symbols and a later frame, collect controlled performance/memory measurements, and publish a reproducible and accurately scoped case study. A full-day independent all-symbol oracle and external vendor snapshots remain follow-on research work, not claims of this release.
 
 ## Interpretation and remaining checks
 
