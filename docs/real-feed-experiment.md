@@ -1,6 +1,6 @@
 # Reproducing a historical Nasdaq session check
 
-This is a procedure, **not a claim that the project has passed a real Nasdaq session**. At the time of this release, the environment used to build Aster could not retrieve the multi-gigabyte sample and no real-feed verification report has been produced. The independent Python decoder shares the published ITCH field definitions with the C++ implementation, so comparison with a third implementation or vendor checkpoints is still required.
+The [October 25, 2026 contributor report](real-feed-replay-2026-10-25.md) documents a real January 30, 2019 Nasdaq session successfully decoded and fully replayed through both C++ I/O paths. The contributor also independently matched a 20-million-message all-stock prefix and selected AAPL/MSFT full-depth FIFO snapshots at 120 million and 300 million frames. This does **not** constitute full-day independently verified market-data correctness or vendor certification. The recording stays on the contributor's machine and is not redistributed.
 
 ## Choose and record the input
 
@@ -13,11 +13,13 @@ mkdir -p "$HOME/itch-data" && cd "$HOME/itch-data"
 BASE='https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH'
 NAME='01302019.NASDAQ_ITCH50.gz'
 curl -fL --retry 3 -C - -o "$NAME" "$BASE/$NAME"
-curl -fL --retry 3 -o "$NAME.md5sum" "$BASE/$NAME.md5sum"
+# Optional sidecar; this returned HTTP 404 in the recorded local run.
+curl -fL --retry 3 -o "$NAME.md5sum" "$BASE/$NAME.md5sum" || true
 
 # Run these from the Aster repository root, adjusting the paths as needed.
+# If the vendor MD5 sidecar is accessible, additionally pass:
+# --md5-file "$HOME/itch-data/$NAME.md5sum"
 python3 tools/prepare_session.py "$HOME/itch-data/$NAME" \
-  --md5-file "$HOME/itch-data/$NAME.md5sum" \
   --output "$HOME/itch-data/01302019.NASDAQ_ITCH50" \
   --receipt "$HOME/itch-data/receipt.json"
 ```
@@ -26,7 +28,7 @@ If the sidecar download is unavailable, the preparation tool can still calculate
 
 ## Replay and cross-check
 
-A first local run of the January 30, 2019 sample stopped at byte `51,681,596` on an exactly repeated stock-directory body for `CFG-D` (locate `1335`), previously seen at byte `54,855`. The strict reject-all-duplicates rule has been changed in v0.8.1 to accept **only** field-identical reannouncements and count them, while rejecting changed mappings/metadata. This first failure is not a successful full-session validation; run the updated engine on the same bytes and retain the next outcome.
+A first local run stopped at byte `51,681,596` on an exactly repeated stock-directory body for `CFG-D` (locate `1335`), previously seen at byte `54,855`. Since v0.8.1, exactly identical reannouncements are counted and accepted while conflicts still fail. Both C++ readers subsequently passed full-session replay; later independent reference checks passed on a bounded prefix and two sampled full-depth stocks. See the [replay report](real-feed-replay-2026-10-25.md).
 
 
 ```bash
@@ -46,11 +48,11 @@ A real recording may reveal feed-specific behavior not represented by the synthe
 ```bash
 python3 tools/bench_stages.py "$HOME/itch-data/01302019.NASDAQ_ITCH50" \
   --binary build-release/aster-replay --complete \
-  --warmups 1 --repetitions 5 \
+  --warmups 0 --repetitions 3 \
   --output "$HOME/itch-data/bench-stages.json"
 ```
 
-This measures four combinations: `mmap` and buffered `read()`, each with decoding-only and full displayed-book updates. The results include end-to-end replay-loop time, process wall time, CPU time and Linux peak RSS. They **do not** supply isolated per-message p50/p99 latency, exact time spent solely in the book, or throughput claims comparable to QSE without running both engines on the same hardware and event stream.
+This runs three measured trials per combination (twelve full-file passes, with no separate warmups). Per-stage progress is printed to standard error while the final JSON remains on standard output. This measures four combinations: `mmap` and buffered `read()`, each with decoding-only and full displayed-book updates. The results include end-to-end replay-loop time, process wall time, CPU time and Linux peak RSS. They **do not** supply isolated per-message p50/p99 latency, exact time spent solely in the book, or throughput claims comparable to QSE without running both engines on the same hardware and event stream.
 
 ## Evidence checklist
 

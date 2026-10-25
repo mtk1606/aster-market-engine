@@ -119,7 +119,17 @@ def main() -> None:
     for attempt in range(args.warmups + args.repetitions):
         sequence = STAGES if attempt % 2 == 0 else tuple(reversed(STAGES))
         for io, mode in sequence:
+            phase = (f"warmup {attempt + 1}/{args.warmups}"
+                     if attempt < args.warmups
+                     else f"measurement {attempt - args.warmups + 1}/{args.repetitions}")
+            print(f"[bench] starting {phase}: {io}/{mode}",
+                  file=sys.stderr, flush=True)
             result, record = invoke(binary, source, io, mode, args.chunk, args.complete)
+            print(f"[bench] finished {phase}: {io}/{mode} "
+                  f"engine={result['elapsed_seconds']:.2f}s "
+                  f"wall={result['wall_seconds']:.2f}s "
+                  f"peak_rss={result['max_rss_kib']} KiB",
+                  file=sys.stderr, flush=True)
             if (io, mode) not in observed:
                 observed[(io, mode)] = record
             else:

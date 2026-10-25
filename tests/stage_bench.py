@@ -18,10 +18,14 @@ def main():
         path = root / "synthetic.itch"
         data, count = scenario(314159)
         path.write_bytes(data)
-        report = json.loads(subprocess.check_output([
+        bench = subprocess.run([
             sys.executable, str(ROOT / "tools" / "bench_stages.py"),
             str(path), "--binary", BINARY, "--complete", "--warmups", "0",
-            "--repetitions", "2", "--chunk", "7"], text=True))
+            "--repetitions", "2", "--chunk", "7"],
+            text=True, capture_output=True, check=True)
+        report = json.loads(bench.stdout)
+        assert bench.stderr.count("[bench] starting measurement") == 8
+        assert bench.stderr.count("[bench] finished measurement") == 8
         assert report["parity"]["replay_frames"] == count
         assert report["parity"]["read_vs_mmap"]
         assert len(report["result"]) == 4

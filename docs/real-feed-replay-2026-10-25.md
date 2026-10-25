@@ -224,7 +224,33 @@ The contributor successfully executed `tools/verify_symbol.py` using `--symbol A
 
 **Scope:** AAPL's full visible resting queue and fingerprint agree at this frame, with all AAPL events from the start incorporated. The other stocks were replayed and internally validated in C++ but **not** independently reconstructed by Python. This is a sampled stock/state comparison, not independent whole-market correctness at frame 120 million. No vendor-authenticated MD5 or third-party book snapshot was used.
 
-For a first public v1.0 portfolio milestone, the remaining work is to cross-check additional symbols and a later frame, collect controlled performance/memory measurements, and publish a reproducible and accurately scoped case study. A full-day independent all-symbol oracle and external vendor snapshots remain follow-on research work, not claims of this release.
+A further late-session MSFT verification at 300 million frames has now passed; see below. For a first public v1.0 portfolio milestone, the remaining work is to collect repeated performance/memory measurements and publish a reproducible and accurately scoped case study. A full-day independent all-symbol oracle and external vendor snapshots remain follow-on research work, not claims of this release.
+
+## Independent later-frame MSFT snapshot — 300-million-frame prefix (v0.8.3)
+
+After the AAPL check, the contributor independently reconstructed MSFT through **300,000,000 frames**, starting from the first record to preserve full order history. Python independently retained MSFT's price-time FIFO orders, while C++ replayed and validated all symbols through the same frame. The exact full-depth MSFT snapshot and the stock-locate digest matched.
+
+| Field | Observed local result |
+| --- | --- |
+| Symbol / stock locate | `MSFT` / `5217` |
+| Frames traversed | 300,000,000 (81.44% of the 368,366,634-frame session) |
+| Prefix bytes consumed | 9,125,391,152 |
+| Prefix SHA-256 | `efe1a7de317f9a97d3900a05a494c8f4223f9db2d9bdcb53b97ec15c154f2dba` |
+| Independently reconstructed MSFT updates | 1,322,484 |
+| MSFT resting orders at checkpoint | 19,502 |
+| MSFT locate FIFO digest | `5ccdf50643796a3` |
+| `snapshot_matched` | `true` |
+| `independent_match` | `true` |
+| `differences` | `[]` |
+| Exit status | 0 |
+| C++ bounded replay time | 204.343138 seconds |
+| Full verifier elapsed wall time | 6:58.73 (418.73 seconds) |
+| User CPU time | 337.59 seconds |
+| Measured peak resident set size | 316,284 KiB (308.9 MiB) |
+
+**Scope:** This independently validates **one** stock's resting FIFO state at a late-session checkpoint; it is not an independent whole-market reconstruction of all 300 million messages. Source files were kept on the local host and not published. No exchange-certified book snapshot or vendor-provided MD5 was checked.
+
+The remaining objectives for a defensible first portfolio release are a controlled, repeated full-session performance study and a clear release README and case study. A full independent all-symbol day and external vendor spot checks remain future work.
 
 ## Interpretation and remaining checks
 
@@ -235,4 +261,4 @@ For a first public v1.0 portfolio milestone, the remaining work is to cross-chec
 - The separate authorized Aster/QSE synthetic add/delete microbenchmark must **not** be described as a comparison of real Nasdaq-feed end-to-end systems.
 - Peak replay-process RSS was not collected in this run; post-run `free -h` is not peak-process memory.
 
-The next acceptance goals are selected-symbol independent snapshots at later session frames (using `tools/verify_symbol.py`), broader book and venue-specific spot checks, a full-day independent replay when practical, and third-party/vendor verification.
+AAPL at 120 million frames and MSFT at 300 million frames now provide two independently matched, full-depth sampled-stock snapshots. Remaining first-release work is a repeatable performance report, resource measurements, and clear public documentation. A full-day all-symbol independent oracle and vendor-certified book snapshots remain outside the scope of this initial release.
