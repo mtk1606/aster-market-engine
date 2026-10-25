@@ -97,7 +97,27 @@ After installing the bounded prefix checker from commit `a2f66b50039730c9e784c64
 
 The output was supplied from the contributor's laptop, rather than reproduced in the GitHub CI runners, which do not contain Nasdaq's multi-gigabyte recording. **The comparison covers only the first 250,000 frames** (about 0.068% of the 368,366,634-frame session). It does not yet exercise most of the trading day or establish full-session independent correctness.
 
-The next run should increase to 2,000,000 frames with periodic checkpoints, crossing the real-feed repeated-directory message at byte 51,681,596 if the prefix reaches that offset. Measure memory use before substantially increasing Python coverage.
+The subsequent 2,000,000-frame run has now passed as recorded below. Measure memory use before substantially increasing Python coverage.
+
+## Independent Python FIFO validation — 2-million-frame prefix
+
+On the same laptop, the contributor extended `tools/verify_prefix.py` from 250,000 to 2,000,000 input messages. The second comparison passed **all ten checkpoints** against the independently implemented Python decoder and FIFO book. C++ and Python agreed on frames, bytes consumed, update counts, live orders, book digest, checkpoints and complete *prefix* audit state.
+
+| Field | Observed local result |
+| --- | --- |
+| Input frames compared | 2,000,000 |
+| Prefix bytes consumed | 58,039,979 |
+| Checked-prefix SHA-256 | `2aff5da8688f2c53790589efe6bfb8e09f679c60cb517baf0221610c2c8686e9` |
+| Checkpoint interval | 200,000 frames |
+| Checkpoints matched | 10 of 10 |
+| `independent_match` | `true` |
+| `differences` | `{}` |
+| Exit status | 0 |
+| C++ bounded replay time (not Python time) | 0.276063 seconds |
+
+The checked byte range extends beyond the identical `CFG-D` directory reannouncement at byte 51,681,596. Consequently, **both the C++ validator and the independent Python validator accepted that real reannouncement consistently**, in addition to comparing live book states. The 2-million-frame prefix represents about 0.54% of the full recording's 368,366,634 frames. Full-day independent correctness, vendor MD5 validation and externally checked snapshots remain outstanding.
+
+To broaden coverage conservatively, the next experiment should compare 5,000,000 frames at five checkpoints and record peak process RSS. A longer contiguous prefix does not give independent coverage of later-day messages; additional sampled windows or a resource-managed full-day reference run would be needed.
 
 ## Interpretation and remaining checks
 
