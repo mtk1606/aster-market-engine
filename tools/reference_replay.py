@@ -146,15 +146,30 @@ class ReferenceBook:
         self.applied += 1
         return True
 
-    def _digest_locations(self, locations: list[int]) -> str:
+    def _level_prices(self) -> dict[tuple[int, str], list[int]]:
+        # Build one temporary index per checkpoint instead of scanning *all*
+        # price levels again for every stock locate. The previous approach was
+        # O(number of locates * number of nonempty price levels), which made
+        # real-session checkpoints disproportionately expensive.
+        prices: dict[tuple[int, str], list[int]] = {}
+        for locate, side, price in self.levels:
+            prices.setdefault((locate, side), []).append(price)
+        return prices
+
+    def _digest_locations(
+        self, locations: list[int],
+        level_prices: dict[tuple[int, str], list[int]] | None = None,
+    ) -> str:
         value = FNV_OFFSET
         # The book's wire-independent fingerprint serializes five uint64
         # fields per live order, in price-time sequence. This implementation
         # uses struct rather than the C++ bitwise mix loop.
+        if level_prices is None:
+            level_prices = self._level_prices()
         for locate in locations:
             for side in "BS":
-                prices = (key[2] for key in self.levels if key[0] == locate and key[1] == side)
-                for price in sorted(prices, reverse=(side == "B")):
+                for price in sorted(level_prices.get((locate, side), ()),
+                                    reverse=(side == "B")):
                     for ref, qty in self.levels[(locate, side, price)].items():
                         for octet in struct.pack("<QQQQQ", locate, ord(side), price, ref, qty):
                             value = ((value ^ octet) * FNV_PRIME) & MASK
@@ -164,8 +179,10 @@ class ReferenceBook:
         return self._digest_locations(sorted({key[0] for key in self.levels}))
 
     def locate_digests(self) -> dict[str, str]:
-        return {str(locate): self._digest_locations([locate])
-                for locate in sorted({key[0] for key in self.levels})}
+        level_prices = self._level_prices()
+        locates = sorted({locate for locate, _ in level_prices})
+        return {str(locate): self._digest_locations([locate], level_prices)
+                for locate in locates}
 
     def snapshot(self, locate: int) -> dict:
         result: dict[str, list] = {}

@@ -4,7 +4,7 @@ A C++20 market-data replay engine built around Nasdaq TotalView-ITCH 5.0. It rea
 
 I started with the feed and the book rather than the trading strategy. If the parser misses a boundary, or a cancel silently changes the wrong order, everything built on top of that data is suspect. This repository is an attempt to make those failures visible and testable before adding execution research.
 
-**Status:** v0.8.1, offline research software. It does not connect to an exchange, place orders, model hidden liquidity, or infer the true queue position of a hypothetical order.
+**Status:** v0.8.2, offline research software. It does not connect to an exchange, place orders, model hidden liquidity, or infer the true queue position of a hypothetical order.
 
 ## What works today
 
@@ -22,7 +22,7 @@ This is *displayed-book reconstruction*, not a complete exchange simulator. Non-
 
 For a published Nasdaq sample session, see [real-feed procedure](docs/real-feed-experiment.md) and the [October 25, 2026 local replay report](docs/real-feed-replay-2026-10-25.md). `tools/prepare_session.py` validates the compressed archive against an optional vendor MD5 sidecar and writes a SHA-256 receipt for its uncompressed bytes. On a contributor's WSL2 machine, v0.8.1 decoded and replayed the complete January 30, 2019 recording, and `mmap` and buffered `read()` agreed. **This does not establish independent full-day book correctness**: the Python oracle has yet to process that recording; the vendor MD5 sidecar was unavailable.
 
-To check real-message FIFO state without loading a full-day Python book into limited RAM, `tools/verify_prefix.py` compares a bounded number of real input messages at intermediate checkpoints against the independent Python model. It does not validate the rest of the day. To distinguish basic field decoding from full FIFO reconstruction, `aster-replay --decode-only` checks every record and can still audit the session without mutating the book. `tools/bench_stages.py` compares the decode and full-replay pipelines using both input readers. It alternates experiment order, records input and executable hashes, reports process CPU and peak memory, and refuses inconsistent replays. On a genuine file:
+To check real-message FIFO state without loading a full-day Python book into limited RAM, `tools/verify_prefix.py` compares a bounded number of real input messages at intermediate checkpoints against the independent Python model. It does not validate the rest of the day. The Python fingerprint routine now groups price levels once per checkpoint rather than rescanning all levels for every instrument; canonical digest ordering is checked against a simple scan-based reference. To distinguish basic field decoding from full FIFO reconstruction, `aster-replay --decode-only` checks every record and can still audit the session without mutating the book. `tools/bench_stages.py` compares the decode and full-replay pipelines using both input readers. It alternates experiment order, records input and executable hashes, reports process CPU and peak memory, and refuses inconsistent replays. On a genuine file:
 
 ```bash
 python3 tools/bench_stages.py /path/to/uncompressed.itch \

@@ -142,6 +142,12 @@ The 5-million-message prefix amounts to approximately 1.36% of the complete hist
 
 To extend this test, use a 20-million-frame prefix with checkpoints every 2 million messages and measure resources again. The remaining day still requires independently checked later-session states or a complete independent reference pass before full-day correctness claims are justified.
 
+## Reference replay performance investigation — later prefix
+
+After the five-million-message success, a 20-million-frame independent prefix run was still active after approximately 34 minutes. A process diagnostic showed Python at about 102% CPU and 818 MiB resident memory, while 6.3 GiB system memory remained available, swap use was negligible, and reported memory pressure was zero. This is consistent with a CPU-bound reference-comparison bottleneck, not system-memory exhaustion.
+
+Inspection found that the original Python reference digest scanned all global price levels once **per active stock locate** at each intermediate checkpoint. The v0.8.2 implementation creates a temporary `(locate, side)` price index for each checkpoint and retains the original canonical hash ordering. A dedicated scan-based regression test protects digest semantics. The 20-million-message attempt has **not** produced a passing report and cannot be cited as independently validated. Retry with a smaller incremental comparison before a larger run.
+
 ## Interpretation and remaining checks
 
 - Both C++ readers use the **same decoder and book implementation**. Agreement proves I/O path consistency on this recording but **not** correctness against an independent full-day oracle.
