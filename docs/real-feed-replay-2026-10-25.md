@@ -1,6 +1,6 @@
 # Full-session Nasdaq ITCH replay on a local WSL2 host — 2026-10-25
 
-**Status: C++ full-day replay and reader parity passed. Full-day independent Python/book validation is pending.**
+**Status: C++ full-day replay and reader parity passed; independent 20M-prefix plus AAPL/MSFT late-frame full-depth FIFO state comparisons passed. Full-day independent all-stock Python replay remains outstanding.**
 
 This is a record of outputs supplied from a local Ubuntu WSL2 host on October 25, 2026. The multi-gigabyte source recording remains on the contributor's machine; these results were not rerun in the project publishing environment. The market-data bytes are not included or redistributed.
 
@@ -250,7 +250,7 @@ After the AAPL check, the contributor independently reconstructed MSFT through *
 
 **Scope:** This independently validates **one** stock's resting FIFO state at a late-session checkpoint; it is not an independent whole-market reconstruction of all 300 million messages. Source files were kept on the local host and not published. No exchange-certified book snapshot or vendor-provided MD5 was checked.
 
-The remaining objectives for a defensible first portfolio release are a controlled, repeated full-session performance study and a clear release README and case study. A full independent all-symbol day and external vendor spot checks remain future work.
+The three-trial full-session performance study has now been completed. See [the benchmark results](real-feed-performance-2026-10-25.md) and [release notes](../RELEASE_NOTES.md). A full independent all-symbol day and external vendor spot checks remain future research.
 
 ## Interpretation and remaining checks
 
@@ -261,4 +261,4 @@ The remaining objectives for a defensible first portfolio release are a controll
 - The separate authorized Aster/QSE synthetic add/delete microbenchmark must **not** be described as a comparison of real Nasdaq-feed end-to-end systems.
 - Peak replay-process RSS was not collected in this run; post-run `free -h` is not peak-process memory.
 
-AAPL at 120 million frames and MSFT at 300 million frames now provide two independently matched, full-depth sampled-stock snapshots. Remaining first-release work is a repeatable performance report, resource measurements, and clear public documentation. A full-day all-symbol independent oracle and vendor-certified book snapshots remain outside the scope of this initial release.
+AAPL at 120 million frames and MSFT at 300 million frames provide two independently matched, full-depth sampled-stock snapshots. Repeated full-session resource and throughput results are reported in [the dated benchmark report](real-feed-performance-2026-10-25.md). A full-day all-symbol independent oracle and vendor-certified book snapshots remain outside the scope of this initial release.

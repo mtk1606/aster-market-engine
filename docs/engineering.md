@@ -36,7 +36,7 @@ The readers have independent framing code on purpose. They meet at the same ITCH
 
 A fast number without a workload description isn't useful. A replay result should include at least the feed hash or generation seed, compiler and flags, CPU, page-cache assumptions, number of repetitions, frame count, final digest and live-order count. Use Release builds and compare modes on the same input and host.
 
-The churn fixture currently used by `tools/benchmark.py` is deliberately small in working-set size. It does not capture the cost of keeping millions of order references live. Before an optimization claim, I want separate numbers for framing, field decoding, book updates and full replay, along with peak memory and a reasonable latency distribution. Hardware counters and sampled profiles should explain any speed difference.
+The churn fixture used by `tools/benchmark.py` is deliberately small in working-set size. Separately, a 368-million-message real-session run now measures decode-only and full-book replay pipelines with end-to-end wall time, CPU and per-process peak RSS; see [the report](real-feed-performance-2026-10-25.md). It does **not** isolate book-event p99 latency, CPU cycles or independently established exchange queue position. Hardware counters and sampled profiles should explain any speed difference.
 
 ## Limits of the current model
 
@@ -44,7 +44,7 @@ A historical displayed-order feed does not reveal hidden liquidity, a hypothetic
 
 ## Work left to validate
 
-1. Full real-session replay, with source and license documented, plus independently checked event counts and sampled depth.
+1. Extend the now-completed full C++ session replay and sampled independent AAPL/MSFT checks to third-party/vendor-certified event counts and depth when available.
 2. Longer coverage-guided fuzz runs; save and minimize each discovered failure.
 3. Representative depth benchmarks with p50/p95/p99 event-processing costs and memory measurements.
 4. A stable ITCH-to-QSE event contract and side-by-side deterministic replay.

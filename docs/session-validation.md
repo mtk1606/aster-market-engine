@@ -21,7 +21,7 @@ The verification script makes a streaming SHA-256 fingerprint of the original fi
 
 ### Repeated stock-directory announcements (real-feed discovery)
 
-A reported ITCH recording dated January 30, 2019 contains a second `R` announcement for locate `1335`, symbol `CFG-D`, at byte offset `51,681,596`; the first was at byte `54,855`. A local byte-level diagnostic showed identical 28-byte directory bodies. Version 0.8.1 permits this specific idempotent repetition and counts it. This is *not* a blanket waiver for conflicting or changed directory fields. The full session has **not yet** passed end-to-end replay, so later errors must be assessed individually.
+A reported ITCH recording dated January 30, 2019 contains a second `R` announcement for locate `1335`, symbol `CFG-D`, at byte offset `51,681,596`; the first was at byte `54,855`. A local byte-level diagnostic showed identical 28-byte directory bodies. Version 0.8.1 permits this specific idempotent repetition and counts it. This is *not* a blanket waiver for conflicting or changed directory fields. The full 2019-01-30 session subsequently passed both C++ I/O paths, and bounded Python prefix/reference checks plus AAPL/MSFT sampled stock snapshots passed. See [the dated session report](real-feed-replay-2026-10-25.md). These checks do **not** establish full-day independent all-stock conformance.
 
 ### Meaning of a failure
 
@@ -37,6 +37,6 @@ A reported ITCH recording dated January 30, 2019 contains a second `R` announcem
 
 ## What is still missing
 
-A full historical Nasdaq session has **not** been checked into this repository and is **not** claimed to have been independently validated. Before claiming real-feed conformance, acquire a file with suitable use rights; record its origin, date, format and SHA-256; run the script above; and cross-check a time-window's messages, depth and event counts against an *independently implemented* reference. Do not commit purchased or licensed market-data files to the repository.
+One real historical Nasdaq session has been replayed successfully by both C++ readers **on a contributor's laptop**, but the recording has **not** been checked into this repository and a full-day independent all-symbol oracle has **not** been run. The published results include an independently matched initial 20-million-frame prefix and sampled full-depth AAPL/MSFT state checks later in the day. Vendor-certified hashes and external depth snapshots remain unverified. For future conformance investigations, obtain a file with appropriate use rights, record its SHA-256 and provenance, and cross-check against external sources where possible. Do not commit purchased or licensed market-data files.
 
 Source format: Nasdaq TotalView-ITCH 5.0 specification, at `https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHSpecification_5.0.pdf`.

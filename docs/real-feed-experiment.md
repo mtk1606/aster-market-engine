@@ -52,7 +52,7 @@ python3 tools/bench_stages.py "$HOME/itch-data/01302019.NASDAQ_ITCH50" \
   --output "$HOME/itch-data/bench-stages.json"
 ```
 
-This runs three measured trials per combination (twelve full-file passes, with no separate warmups). Per-stage progress is printed to standard error while the final JSON remains on standard output. This measures four combinations: `mmap` and buffered `read()`, each with decoding-only and full displayed-book updates. The results include end-to-end replay-loop time, process wall time, CPU time and Linux peak RSS. They **do not** supply isolated per-message p50/p99 latency, exact time spent solely in the book, or throughput claims comparable to QSE without running both engines on the same hardware and event stream.
+This runs three measured trials per combination (twelve full-file passes, with no separate warmups), matching the method used for [the published contributor measurements](real-feed-performance-2026-10-25.md). Per-stage progress is printed to standard error while the final JSON remains on standard output. This measures four combinations: `mmap` and buffered `read()`, each with decoding-only and full displayed-book updates. The results include end-to-end replay-loop time, process wall time, CPU time and Linux peak RSS. They **do not** supply isolated per-message p50/p99 latency, exact time spent solely in the book, or throughput claims comparable to QSE without running both engines on the same hardware and event stream.
 
 ## Evidence checklist
 

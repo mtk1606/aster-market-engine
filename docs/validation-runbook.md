@@ -1,6 +1,6 @@
 # Real-session validation runbook
 
-A passing synthetic test is not evidence of conformance to a complete Nasdaq historical feed. These are the steps I intend to use when I have a full recording that can legally be replayed and its results discussed.
+A passing synthetic test alone is not evidence of conformance to a complete Nasdaq historical feed. A contributor subsequently completed the January 30, 2019 Nasdaq sample through both C++ paths and selected independent Python book comparisons. This document sets out how to **reproduce and extend** that evidence without distributing the recording. See the [real-feed session report](real-feed-replay-2026-10-25.md).
 
 ## Data receipt
 
@@ -15,8 +15,17 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 python3 tools/verify_session.py /secure/path/session.itch \
-  --binary build/aster-replay --independent \
-  --checkpoint-interval 1000000 --output /secure/path/validation-report.json
+  --binary build/aster-replay --output /secure/path/reader-parity.json
+
+# Resource-bounded independent initial-prefix book check
+python3 tools/verify_prefix.py /secure/path/session.itch \
+  --binary build/aster-replay --limit 20000000 \
+  --checkpoint-interval 2000000 --output /secure/path/prefix-reference.json
+
+# Independent single-stock full-depth state at a later frame
+python3 tools/verify_symbol.py /secure/path/session.itch \
+  --binary build/aster-replay --symbol AAPL --limit 120000000 \
+  --output /secure/path/aapl-reference.json
 ```
 
 If a full-session check fails, preserve the exact byte offset and message type, then inspect that region against the corresponding specification version before relaxing an invariant. Do not discard unmatched order references or invent replacement orders to make the run complete. For a failure that appears only in one reader, use a smaller `--chunk` value to test split framing. For a book-state mismatch, locate the first differing checkpoint and narrow the interval, then inspect the per-locate fingerprints and one full snapshot (`--symbol`).
@@ -31,4 +40,4 @@ If a full-session check fails, preserve the exact byte offset and message type, 
 
 ### What this repository proves today
 
-Version 0.5 ships a synthetic rejection matrix, a differential book fixture with deep resting liquidity, per-locate fingerprints, and file identity guards. No complete Nasdaq session or third-party oracle is included. The QSE source revision is also not available in this repository, so comparative latency, throughput and correctness claims remain out of scope.
+The initial portfolio v1.0 scope includes the real-feed C++ full-session success, a Python independent whole-book prefix and sampled AAPL/MSFT snapshots, 10 local test suites, and a controlled three-trial performance report. **It does not include** a full-day all-symbol independent reconstruction, a vendor checksum match, a third-party certified book snapshot or a representative end-to-end comparison with QSE. The authorized QSE synthetic book-only experiment is a separate, narrowly scoped benchmark. No source market-data recording is redistributed.
