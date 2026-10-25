@@ -117,7 +117,30 @@ On the same laptop, the contributor extended `tools/verify_prefix.py` from 250,0
 
 The checked byte range extends beyond the identical `CFG-D` directory reannouncement at byte 51,681,596. Consequently, **both the C++ validator and the independent Python validator accepted that real reannouncement consistently**, in addition to comparing live book states. The 2-million-frame prefix represents about 0.54% of the full recording's 368,366,634 frames. Full-day independent correctness, vendor MD5 validation and externally checked snapshots remain outstanding.
 
-To broaden coverage conservatively, the next experiment should compare 5,000,000 frames at five checkpoints and record peak process RSS. A longer contiguous prefix does not give independent coverage of later-day messages; additional sampled windows or a resource-managed full-day reference run would be needed.
+The subsequent 5,000,000-frame prefix comparison has now passed as recorded below. A longer contiguous prefix does not give independent coverage of later-day messages; additional sampled windows or a resource-managed full-day reference run would be needed.
+
+## Independent Python FIFO validation — 5-million-frame prefix
+
+A further laptop run used `tools/verify_prefix.py` with `--limit 5000000` and `--checkpoint-interval 1000000`, wrapped in GNU `/usr/bin/time -v` to record resource usage. The contributor's terminal output recorded:
+
+| Field | Observed local result |
+| --- | --- |
+| Input frames compared | 5,000,000 |
+| Prefix bytes consumed | 145,785,783 |
+| Checked-prefix SHA-256 | `f4c8718b67e763f1e480881c6a8dc587ad67b0129bba0f5519c1c7914fdd779e` |
+| Checkpoint interval | 1,000,000 frames |
+| Matched intermediate checkpoints | 5 of 5 |
+| `independent_match` | `true` |
+| `differences` | `{}` |
+| Exit status | 0 |
+| C++ bounded prefix replay time | 0.69409 seconds |
+| Whole checker wall time (`/usr/bin/time`) | 18.71 seconds |
+| User CPU time | 18.06 seconds |
+| Maximum reported resident set size | 36,172 KiB (~35.3 MiB) |
+
+The 5-million-message prefix amounts to approximately 1.36% of the complete historical recording. The GNU time RSS figure covers the timed process, and is **not a direct peak-memory measurement of every process that may be spawned** by the checker or of the entire full-day C++ replay. Memory may increase as more orders are simultaneously live in later portions of the session.
+
+To extend this test, use a 20-million-frame prefix with checkpoints every 2 million messages and measure resources again. The remaining day still requires independently checked later-session states or a complete independent reference pass before full-day correctness claims are justified.
 
 ## Interpretation and remaining checks
 
