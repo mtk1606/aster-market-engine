@@ -16,7 +16,7 @@ std::size_t message_size(char type) {
         case 'W': return 12;
         case 'K': return 28;
         case 'J': return 35;
-        case 'h': return 20;
+        case 'h': return 21;
         case 'A': return 36;
         case 'F': return 40;
         case 'E': return 31;
