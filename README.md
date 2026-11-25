@@ -31,7 +31,7 @@ Three measured full-file passes per pipeline on an **Intel Core i7-13620H / Ubun
 | Independent multi-symbol reference | First **20 million** real frames matched Python FIFO book at **10 intermediate checkpoints** |
 | Independent AAPL full depth | **39,826 live orders**, exact bid/ask price levels and FIFO queue matched at frame **120 million** |
 | Independent MSFT full depth | **19,502 live orders**, exact bid/ask price levels and FIFO queue matched at frame **300 million** |
-| Automated regression | **10 local CTest suites**, GCC/Clang CI jobs, sanitizer builds and fuzz smoke checks |
+| Automated regression | **11 local CTest suites**, GCC/Clang CI jobs, sanitizer builds and fuzz smoke checks |
 | Source identity | Locally computed SHA-256 of uncompressed input `1d0972ffc25b35902ccc3f9069aae517da56903d5795f872902b8697315f30c3` |
 
 **Limits:** C++ reader parity does not independently prove decoder correctness; Python comparison is limited to a prefix and two late-frame selected-stock snapshots. The complete day has **not** passed an independent, all-stock Python replay, and no vendor-certified checksum or external book snapshot has been verified. The project's representation is **visible displayed depth**, not actual exchange queue priority or hidden liquidity.

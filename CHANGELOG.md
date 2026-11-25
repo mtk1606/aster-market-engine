@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Correct the ITCH 5.0 Operational Halt (`h`) payload length to 21 bytes in the C++ decoder and Python reference replay.
+
 ## 1.0.0 — 2026-10-25 (portfolio release preparation)
 
 - Package the previously completed offline Nasdaq TotalView-ITCH 5.0 decoding, session auditing and displayed FIFO book engine for a scoped public portfolio release.

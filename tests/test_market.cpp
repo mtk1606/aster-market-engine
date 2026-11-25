@@ -103,6 +103,44 @@ void framing() {
     check(unknown.next(out), "unknown framed");
     fails([&] { decode(out); });
 }
+void spec_lengths() {
+    struct Message {
+        char type;
+        std::size_t length;
+    };
+    // Nasdaq TotalView-ITCH 5.0 payload lengths (including type, excluding the prefix).
+    constexpr Message spec[] = {
+        {'S', 12}, // 1.1
+        {'R', 39}, {'H', 25}, {'Y', 20}, {'L', 26}, // 1.2.1–1.2.4
+        {'V', 35}, {'W', 12}, // 1.2.5
+        {'K', 28}, {'J', 35}, {'h', 21}, // 1.2.6–1.2.8
+        {'A', 36}, {'F', 40}, // 1.3.1–1.3.2
+        {'E', 31}, {'C', 36}, {'X', 23}, {'D', 19}, {'U', 35}, // 1.4.1–1.4.5
+        {'P', 44}, {'Q', 40}, {'B', 19}, // 1.5.1–1.5.3
+        {'I', 50}, {'N', 20}, {'O', 48}, // 1.6–1.8
+    };
+    const auto reject = [](std::span<const std::byte> payload) {
+        try {
+            (void)decode(Frame{0, payload});
+        } catch (const Error&) {
+            return;
+        }
+        throw std::runtime_error(std::string("accepted invalid ITCH type/length: ")
+                                 + wire::ascii(payload, 0) + "/"
+                                 + std::to_string(payload.size()));
+    };
+    for (const auto [type, length] : spec) {
+        std::vector<std::byte> buffer(length + 1);
+        buffer[0] = static_cast<std::byte>(type);
+        if (type == 'A' || type == 'F') buffer[19] = std::byte{'B'};
+        const std::span<const std::byte> payload(buffer);
+        check(decode(Frame{0, payload.first(length)}).raw_type == type, "spec payload accepted");
+        reject(payload.first(length - 1));
+        reject(payload);
+    }
+    std::array<std::byte, 12> unknown{std::byte{'Z'}};
+    reject(unknown);
+}
 void wire_bounds() {
     std::array<std::byte, 8> bytes{std::byte{0x12}, std::byte{0x34},
         std::byte{0x56}, std::byte{0x78}, std::byte{0x90},
@@ -192,6 +230,7 @@ int main() {
     try {
         wire_bounds();
         framing();
+        spec_lengths();
         book_transitions();
         locate_digest_checks();
         malformed_events();
