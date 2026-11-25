@@ -42,6 +42,7 @@ struct Walk {
 class Book {
 public:
     void apply(const Event& event);
+    std::optional<Order> find_order(std::uint64_t id) const;
     Quote top(std::uint16_t locate) const;
     Walk walk(std::uint16_t locate, char aggressor, std::uint64_t requested) const;
     std::vector<std::uint64_t> queue(std::uint16_t locate, char side,

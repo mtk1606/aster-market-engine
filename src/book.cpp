@@ -139,6 +139,11 @@ void Book::apply(const Event& e) {
     }
     ++applied_;
 }
+std::optional<Order> Book::find_order(std::uint64_t id) const {
+    const auto it = orders_.find(id);
+    if (it == orders_.end()) return std::nullopt;
+    return it->second.order;
+}
 Quote Book::top(std::uint16_t locate) const {
     Quote q;
     auto it = books_.find(locate);

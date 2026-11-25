@@ -3,6 +3,7 @@
 #include "aster/session.hpp"
 #include "aster/mapped_file.hpp"
 #include "aster/stream_file.hpp"
+#include "price_jumps.hpp"
 
 #include <chrono>
 #include <charconv>
@@ -61,7 +62,7 @@ int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "usage: aster-replay FILE [--io mmap|read] [--chunk N] "
                      "[--locate N|--symbol STOCK] [--limit N] [--validate] "
-                     "[--audit] [--complete] [--snapshot] [--walk B|S N] [--locate-digests] [--decode-only]\n";
+                     "[--audit] [--complete] [--snapshot] [--walk B|S N] [--locate-digests] [--decode-only] [--price-jumps]\n";
         return 2;
     }
     try {
@@ -80,6 +81,7 @@ int main(int argc, char** argv) {
         std::vector<Checkpoint> checkpoints;
         bool validate = false;
         bool decode_only = false;
+        std::optional<aster::PriceJumps> price_jumps;
         bool show_snapshot = false;
         bool show_locate_digests = false;
         char walk_side = '\0';
@@ -119,6 +121,7 @@ int main(int argc, char** argv) {
                 walk_side = side.front();
                 walk_size = number(argv[++i]);
             } else if (arg == "--decode-only") decode_only = true;
+            else if (arg == "--price-jumps") price_jumps.emplace();
             else if (arg == "--validate") validate = true;
             else if (arg == "--audit") audit_enabled = true;
             else if (arg == "--complete") { audit_enabled = true; require_complete = true; }
@@ -126,6 +129,8 @@ int main(int argc, char** argv) {
             else if (arg == "--locate-digests") show_locate_digests = true;
             else throw std::runtime_error("unknown option: " + std::string(arg));
         }
+        if (price_jumps && (!require_complete || decode_only))
+            throw std::runtime_error("--price-jumps requires --complete book replay");
         if (selected_symbol && locate) throw std::runtime_error("choose --locate or --symbol, not both");
         if (require_complete && limit != UINT64_MAX)
             throw std::runtime_error("--complete cannot be used with --limit");
@@ -158,7 +163,8 @@ int main(int argc, char** argv) {
                 const auto event = aster::decode(frame);
                 if (audit_enabled) audit.observe(frame, event);
                 if (event.kind == aster::Kind::Other) ++ignored;
-                else if (!decode_only) book.apply(event);
+                if (price_jumps) price_jumps->observe(book, frame, event, frames + 1);
+                else if (!decode_only && event.kind != aster::Kind::Other) book.apply(event);
                 ++frames;
                 if (checkpoint_interval && frames % checkpoint_interval == 0) {
                     checkpoints.push_back({frames, book.applied(), book.orders(), book.digest()});
@@ -235,6 +241,10 @@ int main(int argc, char** argv) {
                 std::cout << ':' << count;
             }
             std::cout << "}}";
+        }
+        if (price_jumps) {
+            std::cout << ",\"price_jumps\":";
+            price_jumps->write_json(std::cout, audit);
         }
         if (locate) {
             const auto q = book.top(*locate);

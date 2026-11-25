@@ -10,7 +10,8 @@ target_include_directories(aster PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(aster PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
 add_executable(aster-book-bench bench/aster_book_driver.cpp)
 target_link_libraries(aster-book-bench PRIVATE aster)
-add_executable(aster-replay src/main.cpp)
+add_executable(aster-replay src/main.cpp tools/price_jumps/price_jumps.cpp)
+target_include_directories(aster-replay PRIVATE tools/price_jumps)
 target_link_libraries(aster-replay PRIVATE aster)
 if(ASTER_SANITIZE)
   foreach(target aster aster-replay aster-book-bench)
@@ -23,6 +24,9 @@ if(BUILD_TESTING)
   add_executable(aster-tests tests/test_market.cpp)
   target_link_libraries(aster-tests PRIVATE aster)
   add_test(NAME aster-unit COMMAND aster-tests)
+  add_test(NAME aster-price-jumps
+    COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
+      python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/price_jumps.py)
   add_test(NAME aster-fixture
     COMMAND ${CMAKE_COMMAND} -E env ASTER_BINARY=$<TARGET_FILE:aster-replay>
       python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.py)
